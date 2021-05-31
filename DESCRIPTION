@@ -1,0 +1,17 @@
+Package: quickGrid
+Title: Quick method for grid-based crime prediction.
+Version: 0.0.0.1
+Authors@R: 
+    person(given = "Giovanni",
+           family = "Circo",
+           role = c("aut", "cre"),
+           email = "gmcirco42@gmail.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Provides a quick method for making crime forecasts using a grid-based design. 
+    Functions to calculate distances, densities, and grid counts. Implements 'lightgbm' for estimation of
+    crime predictions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
