@@ -101,12 +101,12 @@ lgbm_fit <- function(prep_data,
   
   # Plot gbm
   if (plot == TRUE)
-    plot_map(gbm.fit.pred)
+    .plot_map(gbm.fit.pred)
   
   
   # Plot importance
   if (plot_importance == TRUE)
-    plot_importance(gbm.imp)
+    .plot_importance(gbm.imp)
   
   
   # Return named list
@@ -116,4 +116,41 @@ lgbm_fit <- function(prep_data,
               'model_dataframe' = gbm.fit.pred,
               'model_fit' = gbm.fit) )
   
+}
+
+# PLOT IMPORTANCE
+# Plot importance of variables
+.plot_importance <- function(x){
+  
+  # Set default fontsize
+  fontsize = 12
+  
+  # Adjust Size for lots of vars
+  if(nrow(x) >= 10)
+    fontsize <- 9
+  
+  plot(
+    ggplot(x) +
+      geom_col(aes(x = Gain, 
+                   y = fct_reorder(Feature, Gain)), 
+               fill = "Darkblue") +
+      theme_minimal() +
+      theme(
+        axis.text = element_text(size = fontsize),
+        axis.title.y = element_blank()
+      )
+  )
+}
+
+# PLOT MAP
+# Plot predictions onto a map
+.plot_map <- function(x){
+  plot(
+    ggplot() +
+      geom_sf(data = x, aes(fill = gbm.pred), color = NA) +
+      labs(fill = "Prediction") +
+      scale_fill_viridis_c() +
+      scale_color_viridis_c() +
+      theme_void()
+  )
 }
