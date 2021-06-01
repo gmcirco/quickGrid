@@ -39,6 +39,7 @@ devtools::install_github("gmcirco/quickgrid")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
+library(lightgbm)
 library(quickGrid)
 ## basic example code
 ```
