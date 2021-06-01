@@ -20,3 +20,5 @@ Imports:
     ggplot2,
     lightgbm,
     sf
+Depends: 
+    R (>= 2.10)

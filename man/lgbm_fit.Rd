@@ -2,7 +2,7 @@
 % Please edit documentation in R/lgbm_fit.R
 \name{lgbm_fit}
 \alias{lgbm_fit}
-\title{Fit \code{lightgbm} model}
+\title{Fit a \code{lightgbm} model}
 \usage{
 lgbm_fit(
   prep_data,
