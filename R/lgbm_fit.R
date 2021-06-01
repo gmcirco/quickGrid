@@ -23,9 +23,8 @@
 #' @param cv.lrate Vector of potential values for learning rate in tuning grid.
 #' @param cv.nrounds Vector of potential values for number of rounds in tuning grid.
 #' 
-#' @importFrom lightgbm lightgbm
-#' @importFrom lightgbm lgb.importance
-#' @importFrom lightgbm lgb.Dataset
+#' @import lightgbm
+#' @import ggplot2
 #' @importFrom magrittr %>%
 #' @importFrom sf st_make_grid
 #' @importFrom sf st_as_sf
@@ -42,7 +41,9 @@
 #' @importFrom dplyr relocate
 #' @importFrom tidyr replace_na
 #' @importFrom forcats fct_reorder
-#' @import ggplot2
+#' 
+#' @export
+
 
 
 lgbm_fit <- function(prep_data,

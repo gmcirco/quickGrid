@@ -37,6 +37,8 @@
 #'           pred_var = spatial_predictors, 
 #'           region = region_shapefile, 
 #'           gridsize = 200)
+#'           
+#'@export
 
 prep_data <- function(outcome,
                       pred_var,

@@ -40,4 +40,5 @@ prep_data(outcome = crime_outcome,
           pred_var = spatial_predictors, 
           region = region_shapefile, 
           gridsize = 200)
+          
 }
