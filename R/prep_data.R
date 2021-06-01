@@ -16,7 +16,22 @@
 #' @param kernel Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection.
 #' 
 #' @return model list
-#' @export
+#' 
+#' @importFrom magrittr %>%
+#' @importFrom sf st_make_grid
+#' @importFrom sf st_as_sf
+#' @importFrom sf st_centroid
+#' @importFrom sf st_coordinates
+#' @importFrom sf st_nearest_feature
+#' @importFrom sf st_join
+#' @importFrom dplyr rename
+#' @importFrom dplyr mutate
+#' @importFrom dplyr select
+#' @importFrom dplyr count
+#' @importFrom dplyr arrange
+#' @importFrom dplyr right_join
+#' @importFrom tidyr replace_na
+#' 
 #' @examples
 #' prep_data(outcome = crime_outcome, 
 #'           pred_var = spatial_predictors, 
@@ -83,7 +98,7 @@ prep_data <- function(outcome,
                                 lapply(distance_list, function(x) {
                                   as.numeric(unlist(x))
                                 })) %>%
-    setNames( c("x", "y", "grid_id", "n", names(pred_var)) )#set_names?
+    setNames( c("x", "y", "grid_id", "n", names(pred_var)) )
   return(list('lgbm_dataframe' = model_dataframe,
               'area_grid' = area_grid))
 }
