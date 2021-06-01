@@ -61,7 +61,6 @@ prep_data <- function(outcome,
                      st_coordinates(st_centroid(area_grid))[, 1:2])
   
   # Distance Measures
-  # This is a change
   if (measure %in% c("distance", "both")) {
     print("Calculating distances...")
     distance_list <-

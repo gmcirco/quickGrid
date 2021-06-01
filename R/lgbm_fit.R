@@ -49,8 +49,8 @@
 lgbm_fit <- function(prep_data,
                      model_params = NULL,
                      nleaves = 5,
-                     lrate = 0.01,
-                     nrounds = 1000,
+                     lrate = 0.1,
+                     nrounds = 500,
                      bag_frac = 1,
                      bag_freq = 0,
                      plot = TRUE,
@@ -86,7 +86,7 @@ lgbm_fit <- function(prep_data,
   } else if(all(unique(y) %in% c(0,1)) & is.null(model_params)){
     print("Model type: binary")
     model_params <- list(objective = "binary",
-                         metric = 'auc',
+                         metric = 'binary',
                          bagging_fraction = bag_frac,
                          bagging_freq = bag_freq)
   } else if(all(y%%1 == 0) & is.null(model_params)){
@@ -165,16 +165,19 @@ lgbm_fit <- function(prep_data,
 
 
 # PLOT IMPORTANCE
-# Plot importance of variables
+# Variable importance plot
 .plot_importance <- function(x){
   
   # Set default fontsize
+  
   fontsize = 12
   
   # Adjust Size for lots of vars
+  
   if(nrow(x) >= 10)
     fontsize <- 9
   
+  # Plot out results as bar chart
   plot(
     ggplot(x) +
       geom_col(aes(x = Gain, 
@@ -189,8 +192,10 @@ lgbm_fit <- function(prep_data,
 }
 
 # PLOT MAP
-# Plot predictions onto a map
+# Map of predictions
 .plot_map <- function(x){
+  
+  # Plot out predictions
   plot(
     ggplot() +
       geom_sf(data = x, aes(fill = gbm.pred), color = NA) +
@@ -202,16 +207,15 @@ lgbm_fit <- function(prep_data,
 }
 
 
-# Option to fit model using cross-validation
-# allow user to specify a range of values for hyperparmeters
-# then select the 'best' model given these parmaeters
-
+# LGBM_FIT_CV
+# Optional cross-validation for hyperparameters
 .lgbm_fit_cv <- function(dtrain, param, 
                         num_leaves,
                         learning_rate,
                         nrounds){
   
-  # MODEL TUNING
+  # Set up tuning grid
+  
   tuning_grid <- expand.grid(
     num_leaves = num_leaves,
     learning_rate = learning_rate,
@@ -219,6 +223,7 @@ lgbm_fit <- function(prep_data,
   )
   
   # CROSS VALIDATION TUNING
+  
   cv.list <- list()
   for(i in 1:nrow(tuning_grid)){
     
@@ -245,9 +250,15 @@ lgbm_fit <- function(prep_data,
                       'nrounds' = as.numeric(tuning_grid[i,][3]))
   }
   
-  best_model <- Reduce(min, cv.list[1])
+  # Select best model from cv
+  # either binary or poisson log loss
+  # NOTE: If regression, need to MAXIMIZE l2
+  
+  best_model = as.data.frame(do.call(rbind, lapply(cv.list, unlist)))
+  best_model <- best_model[which.min(best_model$score),]
   
   # Fit model using optimal parameters
+  
   gbm.fit.cv <- lightgbm(
     data = dtrain,
     params = param,
