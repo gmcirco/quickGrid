@@ -36,9 +36,13 @@ densities, or grid cell counts. Function returns a (non-spatial) dataframe and a
 to be used with the \code{lightgbm} wrapper 'lgm_prep' but can be used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
 }
 \examples{
-prep_data(outcome = crime_outcome, 
-          pred_var = spatial_predictors, 
-          region = region_shapefile, 
-          gridsize = 200)
+data("hartford_data")
+
+model_data <- 
+prep_data(outcome = hartford_data[['robbery']],
+          pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
+          region = hartford_data[['hartford']],
+          gridsize = 200,
+          measure = 'distance')
           
 }

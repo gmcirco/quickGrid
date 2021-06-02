@@ -15,6 +15,7 @@ lgbm_fit(
   plot = TRUE,
   plot_importance = FALSE,
   cv = FALSE,
+  cv.folds = 5,
   cv.nleaves = c(5, 10, 20),
   cv.lrate = c(0.1, 0.01),
   cv.nrounds = c(250, 500, 750)

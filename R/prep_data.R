@@ -33,10 +33,14 @@
 #' @importFrom tidyr replace_na
 #' 
 #' @examples
-#' prep_data(outcome = crime_outcome, 
-#'           pred_var = spatial_predictors, 
-#'           region = region_shapefile, 
-#'           gridsize = 200)
+#' data("hartford_data")
+#' 
+#' model_data <- 
+#' prep_data(outcome = hartford_data[['robbery']],
+#'           pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
+#'           region = hartford_data[['hartford']],
+#'           gridsize = 200,
+#'           measure = 'distance')
 #'           
 #'@export
 
@@ -79,6 +83,7 @@ prep_data <- function(outcome,
   # finally, fill in implicit zeroes and
   # export as a dataframe
   
+
   suppressMessages(
     crime_outcome_grid <-
       st_join(outcome, area_grid) %>%
@@ -86,7 +91,7 @@ prep_data <- function(outcome,
       data.frame() %>% 
       select(grid_id, n) %>%
       right_join(area_grid) %>%
-      replace_na(list(n = 0)) %>%
+      mutate(across(everything(), .fns = ~replace_na(.,0))) %>% 
       arrange(grid_id) %>%
       data.frame() %>%
       select(grid_id, n)
@@ -97,8 +102,7 @@ prep_data <- function(outcome,
   
   model_dataframe <- data.frame(xy, crime_outcome_grid,
                                 lapply(distance_list, function(x) {
-                                  as.numeric(unlist(x))
-                                })) %>%
+                                  as.numeric(unlist(x))})) %>%
     setNames( c("x", "y", "grid_id", "n", names(pred_var)) )
   return(list('lgbm_dataframe' = model_dataframe,
               'area_grid' = area_grid))

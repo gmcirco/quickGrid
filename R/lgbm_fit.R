@@ -39,12 +39,9 @@
 #' @importFrom dplyr arrange
 #' @importFrom dplyr right_join
 #' @importFrom dplyr relocate
-#' @importFrom tidyr replace_na
 #' @importFrom forcats fct_reorder
 #' 
 #' @export
-
-
 
 lgbm_fit <- function(prep_data,
                      model_params = NULL,
@@ -56,6 +53,7 @@ lgbm_fit <- function(prep_data,
                      plot = TRUE,
                      plot_importance = FALSE,
                      cv = FALSE,
+                     cv.folds = 5,
                      cv.nleaves = c(5,10,20),
                      cv.lrate = c(0.1,0.01),
                      cv.nrounds = c(250,500,750)) {
@@ -88,19 +86,22 @@ lgbm_fit <- function(prep_data,
     model_params <- list(objective = "binary",
                          metric = 'binary',
                          bagging_fraction = bag_frac,
-                         bagging_freq = bag_freq)
+                         bagging_freq = bag_freq,
+                         verbose = -1)
   } else if(all(y%%1 == 0) & is.null(model_params)){
     print("Model type: Poisson")
     model_params <- list(objective = "poisson",
                          metric = 'poisson',
                          bagging_fraction = bag_frac,
-                         bagging_freq = bag_freq)
+                         bagging_freq = bag_freq,
+                         verbose = -1)
   } else {
     print("Model type: regression")
     model_params <- list(objective = "regression",
                          metric = 'l2',
                          bagging_fraction = bag_frac,
-                         bagging_freq = bag_freq)
+                         bagging_freq = bag_freq,
+                         verbose = -1)
   }
   
   
@@ -111,12 +112,14 @@ lgbm_fit <- function(prep_data,
     print("Fitting lgbm model via cross validation...")
     gbm.fit <- .lgbm_fit_cv(dtrain = dtrain,
                            param = model_params,
+                           folds = cv.folds,
                            num_leaves = cv.nleaves,
                            learning_rate = cv.lrate,
                            nrounds = cv.nrounds)
   }
   else{
     print("Fitting lgbm model...")
+    suppressWarnings(
     suppressMessages(
       gbm.fit <- lightgbm(
         data = dtrain,
@@ -127,8 +130,9 @@ lgbm_fit <- function(prep_data,
         bagging_fraction = bag_frac,
         bagging_freq = bag_freq,
         force_col_wise=TRUE,
-        verbose = 0
+        verbose = -1
       )
+    )
     )
   }
   # Get predictions
@@ -206,10 +210,10 @@ lgbm_fit <- function(prep_data,
   )
 }
 
-
 # LGBM_FIT_CV
 # Optional cross-validation for hyperparameters
-.lgbm_fit_cv <- function(dtrain, param, 
+.lgbm_fit_cv <- function(dtrain, param,
+                        folds,
                         num_leaves,
                         learning_rate,
                         nrounds){
@@ -233,6 +237,7 @@ lgbm_fit <- function(prep_data,
     print(cv.params)
     
     suppressWarnings(
+      suppressMessages(
       cv.out <-
         lgb.cv(data = dtrain,
                params = param,
@@ -241,7 +246,8 @@ lgbm_fit <- function(prep_data,
                learning_rate = tuning_grid[i,][2],
                verbose = 0,
                force_col_wise=TRUE,
-               nfold = 5)
+               nfold = folds)
+    )
     )
     
     cv.list[[i]] <- c('score' = cv.out$best_score,
@@ -254,7 +260,7 @@ lgbm_fit <- function(prep_data,
   # either binary or poisson log loss
   # NOTE: If regression, need to MAXIMIZE l2
   
-  best_model = as.data.frame(do.call(rbind, lapply(cv.list, unlist)))
+  best_model <- as.data.frame(do.call(rbind, lapply(cv.list, unlist)))
   best_model <- best_model[which.min(best_model$score),]
   
   # Fit model using optimal parameters
