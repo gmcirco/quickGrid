@@ -16,9 +16,11 @@ lgbm_fit(
   plot_importance = FALSE,
   cv = FALSE,
   cv.folds = 5,
-  cv.nleaves = c(5, 10, 20),
-  cv.lrate = c(0.1, 0.01),
-  cv.nrounds = c(250, 500, 750)
+  cv.nleaves = c(3, 14, 30),
+  cv.mindata = c(50, 100, 200),
+  cv.maxdepth = c(7, 15, 25),
+  cv.lrate = c(0.01),
+  cv.nrounds = c(750)
 )
 }
 \arguments{

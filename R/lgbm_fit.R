@@ -54,9 +54,11 @@ lgbm_fit <- function(prep_data,
                      plot_importance = FALSE,
                      cv = FALSE,
                      cv.folds = 5,
-                     cv.nleaves = c(5,10,20),
-                     cv.lrate = c(0.1,0.01),
-                     cv.nrounds = c(250,500,750)) {
+                     cv.nleaves = c(3,14,30),
+                     cv.mindata = c(50,100,200),
+                     cv.maxdepth = c(7,15,25),
+                     cv.lrate = c(0.01),
+                     cv.nrounds = c(750)) {
   
   # Get model dataframe 
   df <- prep_data$lgbm_dataframe
@@ -114,8 +116,11 @@ lgbm_fit <- function(prep_data,
                            param = model_params,
                            folds = cv.folds,
                            num_leaves = cv.nleaves,
+                           min_data_in_leaf = cv.mindata,
+                           max_depth = cv.maxdepth,
                            learning_rate = cv.lrate,
                            nrounds = cv.nrounds)
+    
   }
   else{
     print("Fitting lgbm model...")
@@ -135,6 +140,7 @@ lgbm_fit <- function(prep_data,
     )
     )
   }
+  
   # Get predictions
   gbm.pred <- predict(gbm.fit, X)
   
@@ -212,9 +218,12 @@ lgbm_fit <- function(prep_data,
 
 # LGBM_FIT_CV
 # Optional cross-validation for hyperparameters
-.lgbm_fit_cv <- function(dtrain, param,
+.lgbm_fit_cv <- function(dtrain, 
+                        param,
                         folds,
                         num_leaves,
+                        min_data_in_leaf,
+                        max_depth,
                         learning_rate,
                         nrounds){
   
@@ -222,6 +231,8 @@ lgbm_fit <- function(prep_data,
   
   tuning_grid <- expand.grid(
     num_leaves = num_leaves,
+    min_data_in_leaf = min_data_in_leaf,
+    max_depth = max_depth,
     learning_rate = learning_rate,
     nrounds = nrounds
   )
@@ -232,8 +243,10 @@ lgbm_fit <- function(prep_data,
   for(i in 1:nrow(tuning_grid)){
     
     cv.params <- paste0("num_leaves: ", as.numeric(tuning_grid[i,][1]),
-                        " learning_rate: ", as.numeric(tuning_grid[i,][2]),
-                        " nrounds: ", as.numeric(tuning_grid[i,][3])) 
+                        " min_data_in_leaf: ", as.numeric(tuning_grid[i,][2]),
+                        " max_depth: ", as.numeric(tuning_grid[i,][3]),
+                        " learning_rate: ", as.numeric(tuning_grid[i,][4]),
+                        " nrounds: ", as.numeric(tuning_grid[i,][5])) 
     print(cv.params)
     
     suppressWarnings(
@@ -241,9 +254,11 @@ lgbm_fit <- function(prep_data,
       cv.out <-
         lgb.cv(data = dtrain,
                params = param,
-               nrounds = as.numeric(tuning_grid[i,][3]),
                num_leaves = tuning_grid[i,][1],
-               learning_rate = tuning_grid[i,][2],
+               min_data_in_leaf = tuning_grid[i,][2],
+               max_depth = tuning_grid[i,][3],
+               learning_rate = tuning_grid[i,][4],
+               nrounds = as.numeric(tuning_grid[i,][5]),
                verbose = 0,
                force_col_wise=TRUE,
                nfold = folds)
@@ -252,8 +267,10 @@ lgbm_fit <- function(prep_data,
     
     cv.list[[i]] <- c('score' = cv.out$best_score,
                       'num_leaves' = as.numeric(tuning_grid[i,][1]),
-                      'learning_rate' = as.numeric(tuning_grid[i,][2]),
-                      'nrounds' = as.numeric(tuning_grid[i,][3]))
+                      'min_data_in_leaf' = as.numeric(tuning_grid[i,][2]),
+                      'max_depth' = as.numeric(tuning_grid[i,][3]),
+                      'learning_rate' = as.numeric(tuning_grid[i,][4]),
+                      'nrounds' = as.numeric(tuning_grid[i,][5]))
   }
   
   # Select best model from cv
@@ -269,8 +286,10 @@ lgbm_fit <- function(prep_data,
     data = dtrain,
     params = param,
     num_leaves = best_model[[2]],
-    learning_rate = best_model[[3]],
-    nrounds = best_model[[4]],
+    min_data_in_leaf = best_model[[3]],
+    max_depth = best_model[[4]],
+    learning_rate = best_model[[5]],
+    nrounds = best_model[[6]],
   )
   
   print(best_model)
