@@ -5,13 +5,15 @@
 #' 
 #' This is a wrapper around the `lightgbm` function. This function provides a number of conveniences to speed up model building. 
 #' Users should provide data prepared using the 'prep_data' function. 'lgmb_fit' attempts to fit a reasonable model using some default
-#' parameters, or using cross-validation (preferred!). Users are STRONGLY encouraged to tune the model hyperparameters using some
+#' parameters, or using cross-validation (preferred!). Users are STRONGLY encouraged to tune the model parameters using some
 #' estimate of out-of-sample prediction. The built-in cross-validation step greatly aids this step by testing a range of values in a tuning grid, 
 #' finding the best model, then fitting using the chosen parameters.
 #' 
 #' @param prep_data Model list output from 'prep_data' function.
 #' @param model_params Optional `lightgbm` model parameters. Defaults to NULL.
 #' @param nleaves Maximum number of leaves in one tree. Defaults to 5.
+#' @param mindata Minimum number of observations to be considered for each split. Defaults to 50.
+#' @param maxdepth Maximum tree depth. Defaults to 7.
 #' @param lrate Learning rate. Controls the deepness or shallowness of each iteration. Smaller steps generally 
 #' produce lower test error, but require a larger number of iterations. Defaults to 0.01.
 #' @param bag_frac Proportion of sample to randomly subset. Defaults to 1.
@@ -43,9 +45,33 @@
 #' 
 #' @export
 
+#---------------------------#
+# LGBM_FIT
+#---------------------------#
+# Primary fitting function
+#   Takes either manual input, or fits parameters using cross-validation
+#   Important parameters to be chosen are:
+#
+# nleaves = number of leaves per tree
+#
+# mindata = minimum number of observations required per split
+#   higher values control overfitting
+#
+# maxdepth = maximum tree depth
+#
+# lrate = learning rate. lower values imply smaller steps per iteration. 
+#   generally smaller steps are better for accuracy, but require more iterations
+#
+# nrounds = number of iterations. more iterations are required with more complex 
+#   models
+#
+# general rule of thumb classes < num_leaves < 2^max_depth
+
 lgbm_fit <- function(prep_data,
                      model_params = NULL,
                      nleaves = 5,
+                     mindata = 50,
+                     maxdepth = 7,
                      lrate = 0.1,
                      nrounds = 500,
                      bag_frac = 1,
@@ -54,24 +80,28 @@ lgbm_fit <- function(prep_data,
                      plot_importance = FALSE,
                      cv = FALSE,
                      cv.folds = 5,
-                     cv.nleaves = c(3,14,30),
-                     cv.mindata = c(50,100,200),
-                     cv.maxdepth = c(7,15,25),
+                     cv.nleaves = c(5,10,20),
+                     cv.mindata = c(50,100),
+                     cv.maxdepth = c(7,10,20),
                      cv.lrate = c(0.01),
                      cv.nrounds = c(750)) {
   
   # Get model dataframe 
+  
   df <- prep_data$lgbm_dataframe
   
   # Model Outcome
+  
   y <- df$n
   
   # Predictor Matrix
+  
   X <- df
   X <- df[!names(df) %in% c("grid_id","n")]
   X <- as.matrix(X)
   
   # Set up lightgbm dataset object
+  
   dtrain <- lgb.Dataset(X, label = y)
   
   # Set up model parameters
@@ -110,6 +140,7 @@ lgbm_fit <- function(prep_data,
   # Model Fitting
   # Either fit using cross validation
   # or default\user-specified options
+  
   if(cv == TRUE){
     print("Fitting lgbm model via cross validation...")
     gbm.fit <- .lgbm_fit_cv(dtrain = dtrain,
@@ -130,6 +161,8 @@ lgbm_fit <- function(prep_data,
         data = dtrain,
         params = model_params,
         num_leaves = nleaves,
+        min_data_in_leaf = mindata,
+        max_depth = maxdepth,
         learning_rate = lrate,
         nrounds = nrounds,
         bagging_fraction = bag_frac,
@@ -142,12 +175,15 @@ lgbm_fit <- function(prep_data,
   }
   
   # Get predictions
+  
   gbm.pred <- predict(gbm.fit, X)
   
   # Get feature importance
+  
   gbm.imp <- lgb.importance(gbm.fit)
   
   # Add Predictions to Study Grid
+  
   gbm.fit.pred <- prep_data$area_grid %>%
     select(-grid_id) %>%
     cbind.data.frame(df, gbm.pred) %>%
@@ -155,11 +191,13 @@ lgbm_fit <- function(prep_data,
     relocate(grid_id)
   
   # Plot gbm
+  
   if (plot == TRUE)
     .plot_map(gbm.fit.pred)
   
   
   # Plot importance
+  
   if (plot_importance == TRUE)
     .plot_importance(gbm.imp)
   
@@ -167,6 +205,7 @@ lgbm_fit <- function(prep_data,
   # Return named list
   # Model dataframe as a shapefile with predictions
   # Original model used to fit predictions
+  
   return(list('orginal_data' = df,
               'model_dataframe' = gbm.fit.pred,
               'model_fit' = gbm.fit) )
@@ -174,8 +213,11 @@ lgbm_fit <- function(prep_data,
 }
 
 
+#---------------------------#
 # PLOT IMPORTANCE
+#---------------------------#
 # Variable importance plot
+
 .plot_importance <- function(x){
   
   # Set default fontsize
@@ -201,8 +243,11 @@ lgbm_fit <- function(prep_data,
   )
 }
 
+#---------------------------#
 # PLOT MAP
+#---------------------------#
 # Map of predictions
+
 .plot_map <- function(x){
   
   # Plot out predictions
@@ -216,8 +261,13 @@ lgbm_fit <- function(prep_data,
   )
 }
 
+
+
+#---------------------------#
 # LGBM_FIT_CV
+#---------------------------#
 # Optional cross-validation for hyperparameters
+
 .lgbm_fit_cv <- function(dtrain, 
                         param,
                         folds,
@@ -237,7 +287,7 @@ lgbm_fit <- function(prep_data,
     nrounds = nrounds
   )
   
-  # CROSS VALIDATION TUNING
+  # Set up tuning grid
   
   cv.list <- list()
   for(i in 1:nrow(tuning_grid)){
@@ -252,16 +302,18 @@ lgbm_fit <- function(prep_data,
     suppressWarnings(
       suppressMessages(
       cv.out <-
-        lgb.cv(data = dtrain,
-               params = param,
-               num_leaves = tuning_grid[i,][1],
-               min_data_in_leaf = tuning_grid[i,][2],
-               max_depth = tuning_grid[i,][3],
-               learning_rate = tuning_grid[i,][4],
-               nrounds = as.numeric(tuning_grid[i,][5]),
-               verbose = 0,
-               force_col_wise=TRUE,
-               nfold = folds)
+        lgb.cv(
+          data = dtrain,
+          params = param,
+          num_leaves = tuning_grid[i, ][1],
+          min_data_in_leaf = tuning_grid[i, ][2],
+          max_depth = tuning_grid[i, ][3],
+          learning_rate = tuning_grid[i, ][4],
+          nrounds = as.numeric(tuning_grid[i, ][5]),
+          verbose = -1,
+          force_col_wise = TRUE,
+          nfold = folds
+        )
     )
     )
     

@@ -8,6 +8,8 @@ lgbm_fit(
   prep_data,
   model_params = NULL,
   nleaves = 5,
+  mindata = 50,
+  maxdepth = 7,
   lrate = 0.1,
   nrounds = 500,
   bag_frac = 1,
@@ -16,9 +18,9 @@ lgbm_fit(
   plot_importance = FALSE,
   cv = FALSE,
   cv.folds = 5,
-  cv.nleaves = c(3, 14, 30),
-  cv.mindata = c(50, 100, 200),
-  cv.maxdepth = c(7, 15, 25),
+  cv.nleaves = c(5, 10, 20),
+  cv.mindata = c(50, 100),
+  cv.maxdepth = c(7, 10, 20),
   cv.lrate = c(0.01),
   cv.nrounds = c(750)
 )
@@ -29,6 +31,10 @@ lgbm_fit(
 \item{model_params}{Optional \code{lightgbm} model parameters. Defaults to NULL.}
 
 \item{nleaves}{Maximum number of leaves in one tree. Defaults to 5.}
+
+\item{mindata}{Minimum number of observations to be considered for each split. Defaults to 50.}
+
+\item{maxdepth}{Maximum tree depth. Defaults to 7.}
 
 \item{lrate}{Learning rate. Controls the deepness or shallowness of each iteration. Smaller steps generally
 produce lower test error, but require a larger number of iterations. Defaults to 0.01.}
@@ -52,7 +58,7 @@ produce lower test error, but require a larger number of iterations. Defaults to
 \description{
 This is a wrapper around the \code{lightgbm} function. This function provides a number of conveniences to speed up model building.
 Users should provide data prepared using the 'prep_data' function. 'lgmb_fit' attempts to fit a reasonable model using some default
-parameters, or using cross-validation (preferred!). Users are STRONGLY encouraged to tune the model hyperparameters using some
+parameters, or using cross-validation (preferred!). Users are STRONGLY encouraged to tune the model parameters using some
 estimate of out-of-sample prediction. The built-in cross-validation step greatly aids this step by testing a range of values in a tuning grid,
 finding the best model, then fitting using the chosen parameters.
 }
