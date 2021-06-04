@@ -83,9 +83,11 @@ Here, we're going to fit a simple model using some parameters that were already 
 
 Finally, we'll set `plot = TRUE` and `plot_importance = TRUE` to give us the predicted grid values on a map and the feature importance for each predictor variable.
 
-```{r, out.width="600px"}
+```{r, out.width="500px"}
 gbm_fit <- lgbm_fit(prep_data = model_data,
-                    nleaves = 10,
+                    nleaves =  20,
+                    mindata = 100,
+                    maxdepth = 7,
                     lrate = 0.01,
                     nrounds = 750,
                     bag_frac = .5,
@@ -94,22 +96,30 @@ gbm_fit <- lgbm_fit(prep_data = model_data,
                     plot_importance = TRUE)
 ```
 
-
-We can directly access the model predictions as well, by examinng the model dataframe in the `lgbm_fit` output file. In this case `gbm.pred` is the predicted number of robberies at any given grid cell. These predictions can be used in a variety of methods - including identifying hot-spots for crime prevention.
+We can directly access the model predictions as well, by examining the model dataframe in the `lgbm_fit` output file. In this case `gbm.pred` is the predicted number of robberies at any given grid cell. These predictions can be used in a variety of methods - including identifying hot-spots for crime prevention.
 
 ```{r}
 head(gbm_fit$model_dataframe)
 ```
+We can also plot the accumulated local effect of any predictor variable. For example, if we wanted to know the effect of liquor stores on robberies up to any distance, we can calculate it using the `plot_ale` function. Here it looks like the effect is highly localized, with the effect decaying rapidly as distance from a liquor store increases.
+
+```{r, out.width="500px"}
+plot_ale(gbm_fit, 'liquor')
+```
+
 ### Fitting your model with cross-validation
 
-Another (highly-suggested) option is to utilize the cross-validation function in `lgbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. If we provide 3 values for each of the parameters we must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations.
+Another (highly-suggested) option is to utilize the cross-validation function in `lgbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. If we provide 3 values for 3 of the parameters we must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations. You may wish to tune the parameters seperately, check the results against your test dataset, then re-tune the model against the other parameters.
 
 ```{r, eval=FALSE}
 gbm_fit_cv <- lgbm_fit(prep_data = model_data,
                     cv = TRUE,
+                    cv.folds = 5,
                     cv.nleaves = c(5,10,20),
-                    cv.lrate = c(0.1, 0.05, 0.01),
-                    cv.nrounds = c(250,500,750),
+                    cv.mindata = c(50,100),
+                    cv.maxdepth = c(7,10,20),
+                    cv.lrate = 0.01,
+                    cv.nrounds = 750,
                     bag_frac = .5,
                     bag_freq = 5)
 ```

@@ -133,7 +133,9 @@ predictor variable.
 
 ``` r
 gbm_fit <- lgbm_fit(prep_data = model_data,
-                    nleaves = 10,
+                    nleaves =  20,
+                    mindata = 100,
+                    maxdepth = 7,
                     lrate = 0.01,
                     nrounds = 750,
                     bag_frac = .5,
@@ -142,15 +144,11 @@ gbm_fit <- lgbm_fit(prep_data = model_data,
                     plot_importance = TRUE)
 #> [1] "Model type: Poisson"
 #> [1] "Fitting lgbm model..."
-#> [LightGBM] [Warning] bagging_fraction is set=0.5, bagging_fraction=0.5 will be ignored. Current value: bagging_fraction=0.5
-#> [LightGBM] [Warning] bagging_freq is set=5, bagging_freq=5 will be ignored. Current value: bagging_freq=5
-#> [LightGBM] [Warning] bagging_fraction is set=0.5, bagging_fraction=0.5 will be ignored. Current value: bagging_fraction=0.5
-#> [LightGBM] [Warning] bagging_freq is set=5, bagging_freq=5 will be ignored. Current value: bagging_freq=5
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="600px" /><img src="man/figures/README-unnamed-chunk-3-2.png" width="600px" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="500px" /><img src="man/figures/README-unnamed-chunk-3-2.png" width="500px" />
 
-We can directly access the model predictions as well, by examinng the
+We can directly access the model predictions as well, by examining the
 model dataframe in the `lgbm_fit` output file. In this case `gbm.pred`
 is the predicted number of robberies at any given grid cell. These
 predictions can be used in a variety of methods - including identifying
@@ -171,13 +169,25 @@ head(gbm_fit$model_dataframe)
 #> 5       5 1010420 824500.8 0 6903.672 10890.82 8443.069 7855.256 6118.049
 #> 6       6 1010620 824500.8 0 6792.453 10708.93 8276.006 7681.173 6126.427
 #>      gbm.pred                       geometry
-#> 1 0.003757819 POLYGON ((1009520 824400.8,...
-#> 2 0.003757819 POLYGON ((1009720 824400.8,...
-#> 3 0.003757819 POLYGON ((1009920 824400.8,...
-#> 4 0.003757819 POLYGON ((1010120 824400.8,...
-#> 5 0.003757819 POLYGON ((1010320 824400.8,...
-#> 6 0.003716908 POLYGON ((1010520 824400.8,...
+#> 1 0.003564445 POLYGON ((1009520 824400.8,...
+#> 2 0.003564445 POLYGON ((1009720 824400.8,...
+#> 3 0.003162640 POLYGON ((1009920 824400.8,...
+#> 4 0.002891697 POLYGON ((1010120 824400.8,...
+#> 5 0.003666776 POLYGON ((1010320 824400.8,...
+#> 6 0.003666776 POLYGON ((1010520 824400.8,...
 ```
+
+We can also plot the accumulated local effect of any predictor variable.
+For example, if we wanted to know the effect of liquor stores on
+robberies up to any distance, we can calculate it using the `plot_ale`
+function. Here it looks like the effect is highly localized, with the
+effect decaying rapidly as distance from a liquor store increases.
+
+``` r
+plot_ale(gbm_fit, 'liquor')
+```
+
+<img src="man/figures/README-unnamed-chunk-5-1.png" width="500px" />
 
 ### Fitting your model with cross-validation
 
@@ -189,16 +199,21 @@ These can be specified by adding `cv=TRUE` to the model, then providing
 values for the cross-validation tuning grid for each parameter. The
 cross-validation function then iteratively fits models for each of the
 unique parameter combinations until an optimal one is found. If we
-provide 3 values for each of the parameters we must then fit
+provide 3 values for 3 of the parameters we must then fit
 3<sup>3</sup> = 27 models. While more options are typically better, this
-can become quite time intensive with many combinations.
+can become quite time intensive with many combinations. You may wish to
+tune the parameters seperately, check the results against your test
+dataset, then re-tune the model against the other parameters.
 
 ``` r
 gbm_fit_cv <- lgbm_fit(prep_data = model_data,
                     cv = TRUE,
+                    cv.folds = 5,
                     cv.nleaves = c(5,10,20),
-                    cv.lrate = c(0.1, 0.05, 0.01),
-                    cv.nrounds = c(250,500,750),
+                    cv.mindata = c(50,100),
+                    cv.maxdepth = c(7,10,20),
+                    cv.lrate = 0.01,
+                    cv.nrounds = 750,
                     bag_frac = .5,
                     bag_freq = 5)
 ```
