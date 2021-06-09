@@ -48,9 +48,9 @@ various predictor variables.
 
 `fit_lgbm` takes the data created by `prep_data` and fits a predictive
 model using a tree-based boosted model via `lightgbm`. While some
-reasonable defaults are set for the function, it is highly reccomended
+reasonable defaults are set for the function, it is highly recommended
 that users make use of the built-in cross-validation function to help
-choose hyperparameters that will minimize overfitting. The `fit_lgbm`
+choose parameters that will minimize overfitting. The `fit_lgbm`
 function will automatically fit either binary (0, 1), Poisson
 (0, 1, 2, ..*n*), or regression. You can also specify custom models
 using the parameters listed
@@ -121,7 +121,7 @@ robberies.
 Here, we’re going to fit a simple model using some parameters that were
 already selected via cross-validation. We will put in the model data,
 and specify a few parameters for our boosted tree-based model. We’ll set
-the maximum number of leaves to 10, the learning rate to 0.01, and the
+the maximum number of leaves to 20, the learning rate to 0.01, and the
 number of iterations to 750. In addition, to protect against overfitting
 we’ll set the bagging fraction to .5, and the bagging frequency to 5.
 For more information on parameter tuning, check the [lightgbm
@@ -202,7 +202,7 @@ unique parameter combinations until an optimal one is found. If we
 provide 3 values for 3 of the parameters we must then fit
 3<sup>3</sup> = 27 models. While more options are typically better, this
 can become quite time intensive with many combinations. You may wish to
-tune the parameters seperately, check the results against your test
+tune the parameters separately, check the results against your test
 dataset, then re-tune the model against the other parameters.
 
 ``` r

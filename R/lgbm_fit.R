@@ -28,15 +28,9 @@
 #' @import lightgbm
 #' @import ggplot2
 #' @importFrom magrittr %>%
-#' @importFrom sf st_make_grid
 #' @importFrom sf st_as_sf
-#' @importFrom sf st_centroid
-#' @importFrom sf st_coordinates
-#' @importFrom sf st_nearest_feature
-#' @importFrom sf st_join
 #' @importFrom dplyr rename
 #' @importFrom dplyr mutate
-#' @importFrom dplyr select
 #' @importFrom dplyr count
 #' @importFrom dplyr arrange
 #' @importFrom dplyr right_join
@@ -76,8 +70,7 @@ lgbm_fit <- function(prep_data,
                      nrounds = 500,
                      bag_frac = 1,
                      bag_freq = 0,
-                     plot = TRUE,
-                     plot_importance = FALSE,
+                     plot_importance = TRUE,
                      cv = FALSE,
                      cv.folds = 5,
                      cv.nleaves = c(5,10,20),
@@ -185,16 +178,10 @@ lgbm_fit <- function(prep_data,
   # Add Predictions to Study Grid
   
   gbm.fit.pred <- prep_data$area_grid %>%
-    select(-grid_id) %>%
+    dplyr::select(-grid_id) %>%
     cbind.data.frame(df, gbm.pred) %>%
     st_as_sf() %>%
     relocate(grid_id)
-  
-  # Plot gbm
-  
-  if (plot == TRUE)
-    .plot_map(gbm.fit.pred)
-  
   
   # Plot importance
   
@@ -231,37 +218,17 @@ lgbm_fit <- function(prep_data,
   
   # Plot out results as bar chart
   plot(
-    ggplot(x) +
-      geom_col(aes(x = Gain, 
+    ggplot2::ggplot(x) +
+      ggplot2::geom_col(ggplot2::aes(x = Gain, 
                    y = fct_reorder(Feature, Gain)), 
                fill = "Darkblue") +
-      theme_minimal() +
-      theme(
+      ggplot2::theme_minimal() +
+      ggplot2::theme(
         axis.text = element_text(size = fontsize),
         axis.title.y = element_blank()
       )
   )
 }
-
-#---------------------------#
-# PLOT MAP
-#---------------------------#
-# Map of predictions
-
-.plot_map <- function(x){
-  
-  # Plot out predictions
-  plot(
-    ggplot() +
-      geom_sf(data = x, aes(fill = gbm.pred), color = NA) +
-      labs(fill = "Prediction") +
-      scale_fill_viridis_c() +
-      scale_color_viridis_c() +
-      theme_void()
-  )
-}
-
-
 
 #---------------------------#
 # LGBM_FIT_CV

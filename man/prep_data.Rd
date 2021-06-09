@@ -9,7 +9,7 @@ prep_data(
   pred_var,
   region,
   gridsize,
-  measure = "distance",
+  measure = "density",
   kernel = "auto"
 )
 }

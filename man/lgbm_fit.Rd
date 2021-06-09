@@ -14,8 +14,7 @@ lgbm_fit(
   nrounds = 500,
   bag_frac = 1,
   bag_freq = 0,
-  plot = TRUE,
-  plot_importance = FALSE,
+  plot_importance = TRUE,
   cv = FALSE,
   cv.folds = 5,
   cv.nleaves = c(5, 10, 20),
@@ -43,8 +42,6 @@ produce lower test error, but require a larger number of iterations. Defaults to
 
 \item{bag_freq}{How often to perform bagging. Defaults to 0.}
 
-\item{plot}{Plot a prediction map. Defaults to TRUE.}
-
 \item{plot_importance}{Plot variable importance values. Defaults to FALSE.}
 
 \item{cv}{Should hyperparameters be chosen using cross validation? Defaults to FALSE.}
@@ -54,6 +51,8 @@ produce lower test error, but require a larger number of iterations. Defaults to
 \item{cv.lrate}{Vector of potential values for learning rate in tuning grid.}
 
 \item{cv.nrounds}{Vector of potential values for number of rounds in tuning grid.}
+
+\item{plot}{Plot a prediction map. Defaults to TRUE.}
 }
 \description{
 This is a wrapper around the \code{lightgbm} function. This function provides a number of conveniences to speed up model building.
