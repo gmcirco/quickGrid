@@ -3,10 +3,11 @@
 #----------------------------------------------------#
 #' Prepare data for analysis
 #' 
-#' This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
+#' Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
 #' and a study region and converts it into a grid-based model object. Users can select whether to calculate nearest grid-cell distances,
 #' densities, or grid cell counts. Function returns a (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended 
-#' to be used with the `lightgbm` wrapper 'lgm_prep' but can be used in any other statistical model (i.e. `ranger`, `glmnet`).
+#' to be used with the `lightgbm` wrapper `lgm_fit` or the `xgboost` wrapper `gbm_fit`, but can also 
+#' be used in any other statistical model (i.e. `ranger`, `glmnet`).
 #' 
 #' @param outcome Outcome variable as a point shapefile
 #' @param pred_var Named list of shapefiles as spatial predictors.
@@ -21,8 +22,12 @@
 #' @import sp
 #' @import maptools
 #' @import raster
-#' @import stars
 #' @import spatstat
+#' @import spatstat.data
+#' @import spatstat.geom
+#' @import spatstat.core
+#' @import rpart
+#' @import spatstat.linnet
 #' @importFrom magrittr %>%
 #' @importFrom sf st_as_sf
 #' @importFrom dplyr mutate
@@ -133,7 +138,15 @@ prep_data <- function(outcome,
   # Mask region for mapping
   base_raster <- raster(ext = extent(b), res = gridsize)
   projection(base_raster) <- crs(b)
-  try(mask_raster <- rasterize(b, base_raster, getCover = TRUE), silent = TRUE) #suppress annoying messages
+  
+  # Suppress annoying errors
+  # This is due to garbage collection - not a real error
+  # only solution at the moment
+  {
+  options(show.error.messages = FALSE)
+  mask_raster <- rasterize(b, base_raster, getCover = TRUE) 
+  options(show.error.messages = TRUE)
+  }
   
   return(mask_raster)
 }
@@ -184,7 +197,7 @@ prep_data <- function(outcome,
   
   # Set up grid window
   peval <- rasterToPoints(area_grid)[,1:2]
-  spWin <- as.owin(as.data.frame(peval))
+  spWin <- spatstat.geom::as.owin(as.data.frame(peval))
   
   # Convert Spatial object to .ppp
   # Set up grid window
