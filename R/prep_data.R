@@ -105,8 +105,8 @@ prep_data <- function(outcome,
   area_grid_sf <- stars::st_as_stars(area_grid)
   area_grid_sf <- st_as_sf(area_grid_sf, as_points = FALSE)
   area_grid_sf$grid_id <- 1:nrow(area_grid_sf)
-  area_grid_sf <- st_transform(area_grid_sf, st_crs(hartford))
-  area_grid_sf <- area_grid_sf[hartford,]
+  area_grid_sf <- st_transform(area_grid_sf, st_crs(region))
+  area_grid_sf <- area_grid_sf[region,]
   
   # Set up merged model data
   model_data <-
