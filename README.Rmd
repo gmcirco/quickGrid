@@ -38,7 +38,7 @@ The general workflow for the `quickGrid` package is to first set up your data us
 
 ### fit_lgbm
 
-`fit_lgbm` takes the data created by `prep_data` and fits a predictive model using a tree-based boosted model via `lightgbm`. While some reasonable defaults are set for the function, it is highly reccomended that users make use of the built-in cross-validation function to help choose hyperparameters that will minimize overfitting. The `fit_lgbm` function will automatically fit either binary $(0,1)$, Poisson $(0,1,2,..n)$, or regression. You can also specify custom models using the parameters listed [here](https://lightgbm.readthedocs.io/en/latest/Parameters.html).
+`fit_lgbm` takes the data created by `prep_data` and fits a predictive model using a tree-based boosted model via `lightgbm`. While some reasonable defaults are set for the function, it is highly recommended that users make use of the built-in cross-validation function to help choose parameters that will minimize overfitting. The `fit_lgbm` function will automatically fit either binary $(0,1)$, Poisson $(0,1,2,..n)$, or regression. You can also specify custom models using the parameters listed [here](https://lightgbm.readthedocs.io/en/latest/Parameters.html).
 
 
 ## Data Example: Hartford, CT Robberies
@@ -79,7 +79,7 @@ Here we have the distances for each of the 5 predictor features for each of the 
 
 ### Fitting your model
 
-Here, we're going to fit a simple model using some parameters that were already selected via cross-validation. We will put in the model data, and specify a few parameters for our boosted tree-based model. We'll set the maximum number of leaves to 10, the learning rate to 0.01, and the number of iterations to 750. In addition, to protect against overfitting we'll set the bagging fraction to .5, and the bagging frequency to 5. For more information on parameter tuning, check the [lightgbm page](https://lightgbm.readthedocs.io/en/latest/Parameters-Tuning.html)
+Here, we're going to fit a simple model using some parameters that were already selected via cross-validation. We will put in the model data, and specify a few parameters for our boosted tree-based model. We'll set the maximum number of leaves to 20, the learning rate to 0.01, and the number of iterations to 750. In addition, to protect against overfitting we'll set the bagging fraction to .5, and the bagging frequency to 5. For more information on parameter tuning, check the [lightgbm page](https://lightgbm.readthedocs.io/en/latest/Parameters-Tuning.html)
 
 Finally, we'll set `plot = TRUE` and `plot_importance = TRUE` to give us the predicted grid values on a map and the feature importance for each predictor variable.
 
@@ -109,7 +109,7 @@ plot_ale(gbm_fit, 'liquor')
 
 ### Fitting your model with cross-validation
 
-Another (highly-suggested) option is to utilize the cross-validation function in `lgbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. If we provide 3 values for 3 of the parameters we must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations. You may wish to tune the parameters seperately, check the results against your test dataset, then re-tune the model against the other parameters.
+Another (highly-suggested) option is to utilize the cross-validation function in `lgbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. If we provide 3 values for 3 of the parameters we must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations. You may wish to tune the parameters separately, check the results against your test dataset, then re-tune the model against the other parameters.
 
 ```{r, eval=FALSE}
 gbm_fit_cv <- lgbm_fit(prep_data = model_data,
