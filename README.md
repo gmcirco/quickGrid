@@ -28,11 +28,13 @@ You can install the current experimental version at
 devtools::install_github("gmcirco/quickgrid")
 ```
 
+*NOTE*: There are a **lot** of changes coming in the near future!
+
 ## The Major Functions
 
 `quickGrid` has two major functions. One sets up the raw data for model
-fitting (`prep_data`) and the other simplifies the fitting of a lightgbm
-model (`fit_lgbm`).
+fitting (`prep_data`) and the other simplifies the fitting of a gradient
+boosted tree (GBM) model (`fit_gbm`).
 
 ### prep\_data
 
@@ -44,22 +46,21 @@ statistical modeling program. This function converts your study area
 into *N* gridded cells, then calculates distances or densities of
 various predictor variables.
 
-### fit\_lgbm
+### fit\_gbm
 
-`fit_lgbm` takes the data created by `prep_data` and fits a predictive
-model using a tree-based boosted model via `lightgbm`. While some
+`fit_gbm` takes the data created by `prep_data` and fits a predictive
+model using a tree-based boosted model via `xgboost`. While some
 reasonable defaults are set for the function, it is highly recommended
 that users make use of the built-in cross-validation function to help
-choose parameters that will minimize overfitting. The `fit_lgbm`
-function will automatically fit either binary (0, 1), Poisson
-(0, 1, 2, ..*n*), or regression. You can also specify custom models
-using the parameters listed
-[here](https://lightgbm.readthedocs.io/en/latest/Parameters.html).
+choose parameters that will minimize overfitting. The `fit_gbm` function
+will automatically fit either binary (0, 1), Poisson (0, 1, 2, ..*n*),
+or regression. You can also specify custom models using the parameters
+listed [here](https://xgboost.readthedocs.io/en/latest/parameter.html).
 
 ## Data Example: Hartford, CT Robberies
 
 This is a minimum working example using the data provided in the
-`quickGrid` package[1]. `quickGrid` is packaged with an example dataset
+`quickGrid` package. `quickGrid` is packaged with an example dataset
 containing robberies in Hartford CT for 2018 and 2019. A number of
 spatial predictors are packed in as well, including the locations of
 bars, liquor stores, gas stations, pharmacies, and dollar stores
@@ -69,8 +70,6 @@ objects that can be easily plugged into our model prep function.
 ### Setting up your data
 
 ``` r
-library(lightgbm)
-#> Loading required package: R6
 library(quickGrid)
 
 data("hartford_data")
@@ -99,82 +98,87 @@ particular, has a few important fields:
 
 ``` r
 # Top 6 rows of model dataframe
-head(model_data$lgbm_dataframe)
-#>         x        y grid_id n      bar   liquor      gas pharmacy   retail
-#> 1 1009620 824500.8       1 0 7386.051 11624.34 9124.581 8562.921 6149.811
-#> 2 1009820 824500.8       2 0 7260.199 11440.13 8952.365 8384.448 6132.109
-#> 3 1010020 824500.8       3 0 7137.732 11256.45 8781.327 8206.968 6120.895
-#> 4 1010220 824500.8       4 0 7018.829 11073.34 8611.536 8030.547 6116.203
-#> 5 1010420 824500.8       5 0 6903.672 10890.82 8443.069 7855.256 6118.049
-#> 6 1010620 824500.8       6 0 6792.453 10708.93 8276.006 7681.173 6126.427
+head(model_data$gbm_dataframe)
+#>         x        y n distance.bar distance.liquor distance.gas
+#> 1 1012220 854890.8 0     11952.96        2758.104     10486.70
+#> 2 1012420 854890.8 0     11761.49        2563.484     10451.25
+#> 3 1012620 854890.8 0     11570.31        2369.759     10419.51
+#> 4 1012820 854890.8 0     11379.43        2177.169     10391.53
+#> 5 1013020 854890.8 0     11188.87        1986.044     10367.33
+#> 6 1013220 854890.8 0     10998.65        1796.853     10346.94
+#>   distance.pharmacy distance.retail grid_id
+#> 1          3965.104        2953.137      18
+#> 2          3841.218        2776.535      19
+#> 3          3723.957        2603.320      20
+#> 4          3613.967        2434.215      21
+#> 5          3511.932        2270.139      22
+#> 6          3418.562        2112.263      23
 ```
 
 Here we have the distances for each of the 5 predictor features for each
-of the 12,901 cell 200x200 foot cells. Now that it has been processed,
-this data can be either directly fed into the `lgbm_fit` function, or
-used in any other model fitting function. Here, we will use it directly
-in the convenient `lgbm_fit` function to fit a predictive model for
-robberies.
+of the 12,896 200x200 foot cells. Now that it has been processed, this
+data can be either directly fed into the `gbm_fit` function, or used in
+any other model fitting function. Here, we will use it directly in the
+convenient `gbm_fit` function to fit a predictive model for robberies.
 
 ### Fitting your model
 
 Here, we’re going to fit a simple model using some parameters that were
 already selected via cross-validation. We will put in the model data,
 and specify a few parameters for our boosted tree-based model. We’ll set
-the maximum number of leaves to 20, the learning rate to 0.01, and the
-number of iterations to 750. In addition, to protect against overfitting
-we’ll set the bagging fraction to .5, and the bagging frequency to 5.
-For more information on parameter tuning, check the [lightgbm
-page](https://lightgbm.readthedocs.io/en/latest/Parameters-Tuning.html)
+the learning rate, `eta` to 0.3, `gamma` to 1, `max_depth` to 6, and
+`min_child_weight` to 1. In addition, to help protect against
+overfitting, we’ll randomly subsample 50% of the data each boosting
+iteration. For more information on parameter tuning, check the [XGBoost
+page](https://xgboost.readthedocs.io/en/latest/tutorials/param_tuning.html)
 
-Finally, we’ll set `plot = TRUE` and `plot_importance = TRUE` to give us
-the predicted grid values on a map and the feature importance for each
-predictor variable.
+Finally, we’ll set `plot_importance = TRUE` to give us the feature
+importance for each predictor variable.
 
 ``` r
-gbm_fit <- lgbm_fit(prep_data = model_data,
-                    nleaves =  20,
-                    mindata = 100,
-                    maxdepth = 7,
-                    lrate = 0.01,
-                    nrounds = 750,
-                    bag_frac = .5,
-                    bag_freq = 5,
-                    plot = TRUE,
-                    plot_importance = TRUE)
+gbm_fit <- gbm_fit(
+  prep_data = model_data,
+  eta = 0.3,
+  gamma = 1,
+  max_depth = 6,
+  min_child_weight = 1,
+  subsample = .5,
+  nrounds = 1000,
+  plot_importance = TRUE
+)
 #> [1] "Model type: Poisson"
-#> [1] "Fitting lgbm model..."
+#> [1] "Fitting gbm model..."
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="500px" /><img src="man/figures/README-unnamed-chunk-3-2.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-3-1.png" width="500px" />
 
 We can directly access the model predictions as well, by examining the
-model dataframe in the `lgbm_fit` output file. In this case `gbm.pred`
-is the predicted number of robberies at any given grid cell. These
+model dataframe in the `gbm_fit` output file. In this case `gbm.pred` is
+the predicted number of robberies at any given grid cell. These
 predictions can be used in a variety of methods - including identifying
 hot-spots for crime prevention.
 
 ``` r
 head(gbm_fit$model_dataframe)
-#> Simple feature collection with 6 features and 10 fields
+#> Simple feature collection with 6 features and 11 fields
 #> Geometry type: POLYGON
 #> Dimension:     XY
-#> Bounding box:  xmin: 1009520 ymin: 824400.8 xmax: 1010720 ymax: 824600.8
+#> Bounding box:  xmin: 1012120 ymin: 854790.8 xmax: 1013320 ymax: 854990.8
 #> Projected CRS: NAD83(NSRS2007) / Connecticut (ftUS)
-#>   grid_id       x        y n      bar   liquor      gas pharmacy   retail
-#> 1       1 1009620 824500.8 0 7386.051 11624.34 9124.581 8562.921 6149.811
-#> 2       2 1009820 824500.8 0 7260.199 11440.13 8952.365 8384.448 6132.109
-#> 3       3 1010020 824500.8 0 7137.732 11256.45 8781.327 8206.968 6120.895
-#> 4       4 1010220 824500.8 0 7018.829 11073.34 8611.536 8030.547 6116.203
-#> 5       5 1010420 824500.8 0 6903.672 10890.82 8443.069 7855.256 6118.049
-#> 6       6 1010620 824500.8 0 6792.453 10708.93 8276.006 7681.173 6126.427
-#>      gbm.pred                       geometry
-#> 1 0.003564445 POLYGON ((1009520 824400.8,...
-#> 2 0.003564445 POLYGON ((1009720 824400.8,...
-#> 3 0.003162640 POLYGON ((1009920 824400.8,...
-#> 4 0.002891697 POLYGON ((1010120 824400.8,...
-#> 5 0.003666776 POLYGON ((1010320 824400.8,...
-#> 6 0.003666776 POLYGON ((1010520 824400.8,...
+#>    grid_id layer       x        y n distance.bar distance.liquor distance.gas
+#> 18      18  0.00 1012220 854890.8 0     11952.96        2758.104     10486.70
+#> 19      19  0.00 1012420 854890.8 0     11761.49        2563.484     10451.25
+#> 20      20  0.02 1012620 854890.8 0     11570.31        2369.759     10419.51
+#> 21      21  0.10 1012820 854890.8 0     11379.43        2177.169     10391.53
+#> 22      22  0.10 1013020 854890.8 0     11188.87        1986.044     10367.33
+#> 23      23  0.10 1013220 854890.8 0     10998.65        1796.853     10346.94
+#>    distance.pharmacy distance.retail    gbm.pred                       geometry
+#> 18          3965.104        2953.137 0.001154631 POLYGON ((1012120 854990.8,...
+#> 19          3841.218        2776.535 0.001529267 POLYGON ((1012320 854990.8,...
+#> 20          3723.957        2603.320 0.002322025 POLYGON ((1012520 854990.8,...
+#> 21          3613.967        2434.215 0.001908765 POLYGON ((1012720 854990.8,...
+#> 22          3511.932        2270.139 0.001752649 POLYGON ((1012920 854990.8,...
+#> 23          3418.562        2112.263 0.001365357 POLYGON ((1013120 854990.8,...
 ```
 
 We can also plot the accumulated local effect of any predictor variable.
@@ -184,7 +188,7 @@ function. Here it looks like the effect is highly localized, with the
 effect decaying rapidly as distance from a liquor store increases.
 
 ``` r
-plot_ale(gbm_fit, 'liquor')
+plot_ale(gbm_fit, 'distance.liquor')
 ```
 
 <img src="man/figures/README-unnamed-chunk-5-1.png" width="500px" />
@@ -192,34 +196,27 @@ plot_ale(gbm_fit, 'liquor')
 ### Fitting your model with cross-validation
 
 Another (highly-suggested) option is to utilize the cross-validation
-function in `lgbm_fit` to determine the optimal value for the model
+function in `gbm_fit` to determine the optimal value for the model
 parameters. Currently, the cross-validation function chooses values for
 the number of leaves, the learning rate, and the number of iterations.
 These can be specified by adding `cv=TRUE` to the model, then providing
 values for the cross-validation tuning grid for each parameter. The
 cross-validation function then iteratively fits models for each of the
-unique parameter combinations until an optimal one is found. If we
-provide 3 values for 3 of the parameters we must then fit
-3<sup>3</sup> = 27 models. While more options are typically better, this
-can become quite time intensive with many combinations. You may wish to
-tune the parameters separately, check the results against your test
-dataset, then re-tune the model against the other parameters.
+unique parameter combinations until an optimal one is found. For
+example: if we provide 3 values for 3 of the parameters we then must
+then fit 3<sup>3</sup> = 27 models. While more options are typically
+better, this can become quite time intensive with many combinations. You
+may wish to tune the parameters separately, check the results against
+your test dataset, then re-tune the model against the other parameters.
 
 ``` r
-gbm_fit_cv <- lgbm_fit(prep_data = model_data,
-                    cv = TRUE,
-                    cv.folds = 5,
-                    cv.nleaves = c(5,10,20),
-                    cv.mindata = c(50,100),
-                    cv.maxdepth = c(7,10,20),
-                    cv.lrate = 0.01,
-                    cv.nrounds = 750,
-                    bag_frac = .5,
-                    bag_freq = 5)
+gbm_fit_cv <- gbm_fit(prep_data = model_data,
+                     cv = TRUE,
+                     cv.folds = 5,
+                     cv.eta = c(0.3,0.1),
+                     cv.gamma = c(1),
+                     cv.maxdepth = c(6,12,20),
+                     cv.min_child_weight = c(1),
+                     cv.subsample = c(.75,.5),
+                     cv.nrounds = c(500,1000))
 ```
-
-[1] **NOTE**: Currently a bug in the R version of `lightgbm` can cause
-crashes if it is loaded *after* any tidyverse packages. The only
-solution is to ensure you load `lightgbm` prior to doing anything else.
-See [here](https://github.com/microsoft/LightGBM/issues/4007) for more
-info. This will be fixed in future versions.
