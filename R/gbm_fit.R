@@ -41,31 +41,6 @@
 #---------------------------#
 # Primary fitting function
 #   Takes either manual input, or fits parameters using cross-validation
-#   Important parameters to be chosen are:
-#
-# nleaves = number of leaves per tree
-#
-# mindata = minimum number of observations required per split
-#   higher values control overfitting
-#
-# maxdepth = maximum tree depth
-#
-# lrate = learning rate. lower values imply smaller steps per iteration. 
-#   generally smaller steps are better for accuracy, but require more iterations
-#
-# nrounds = number of iterations. more iterations are required with more complex 
-#   models
-#
-
-param <-
-  list(
-    max_depth = 6,
-    eta = 0.3,
-    subsample = .5,
-    min_child_weight = 1,
-    objective = "count:poisson",
-    eval_metric = 'poisson-nloglik')
-
 
 gbm_fit <- function(prep_data,
                      model_params = NULL,
@@ -87,7 +62,7 @@ gbm_fit <- function(prep_data,
   
   # Get model dataframe 
   
-  df <- prep_data$lgbm_dataframe
+  df <- prep_data$gbm_dataframe
   
   # Model Outcome
   
@@ -195,8 +170,7 @@ gbm_fit <- function(prep_data,
   # Model dataframe as a shapefile with predictions
   # Original model used to fit predictions
   
-  return(list('orginal_data' = df,
-              'model_dataframe' = gbm.fit.pred,
+  return(list('model_dataframe' = gbm.fit.pred,
               'model_fit' = gbm.fit) )
   
 }
@@ -233,9 +207,9 @@ gbm_fit <- function(prep_data,
 }
 
 #---------------------------#
-# LGBM_FIT_CV
+# GBM_FIT_CV
 #---------------------------#
-# Optional cross-validation for hyperparameters
+# Optional cross-validation for parameters
 
 .gbm_fit_cv <- function(xtrain, 
                         folds,

@@ -10,7 +10,7 @@
 #' has a substantial criminogenic effect. This can also be used with density or grid count measures as well.
 #'
 #' 
-#' @param model_list Model list output from `lgbm_fit` function
+#' @param model_list Model list output from `lgbm_fit` or `gbm_fit` function
 #' @param feature Predictor feature to be plotted
 #' @param grid_size Number of points to evaluate the predictor against
 #' 
@@ -20,22 +20,23 @@
 
 plot_ale <- function(model_list, feature, grid_size = 30){
   
-  model = model_list[[3]]
+  model = model_list[[2]]
   newdata = model_list[[1]]
   
+  newdata <- data.frame(newdata)
+  newdata <- dplyr::select(newdata, x, y, dplyr::starts_with(c("distance.", "density.")))
+  rownames(newdata) <- NULL
   
   pred <- function(model, newdata)  {
     
-    X <- newdata %>%
-      select(-grid_id, -n) %>%
-      as.matrix()
+    X <- as.matrix(newdata)
     
     results <- as.data.frame(predict(model, X))
     return(results)
   }
   
   mod <- Predictor$new(model, data = newdata, predict.function = pred)
-  eff <- FeatureEffect$new(mod, feature = feature, grid.size = grid_size, method = "ale")
+  eff <- FeatureEffect$new(mod, feature = feature, grid.size = 30, method = "ale")
   
   ggplot(eff$results) +
     geom_line(aes_string(x = feature, y = '.value'), color = "darkblue", size = 1) +

@@ -23,11 +23,9 @@
 #' @import maptools
 #' @import raster
 #' @import spatstat
-#' @import spatstat.data
-#' @import spatstat.geom
 #' @import spatstat.core
+#' @import spatstat.geom
 #' @import rpart
-#' @import spatstat.linnet
 #' @importFrom magrittr %>%
 #' @importFrom sf st_as_sf
 #' @importFrom dplyr mutate
@@ -58,14 +56,7 @@ prep_data <- function(outcome,
   
   # Designate Grid
   area_grid <- .make_grid(b = region, gridsize = gridsize)
-  
-  # Create an simple features object of the raster grid
-  # need this for plotting and other stuff down the road
-  area_grid_sf <- as(area_grid, "SpatialPixelsDataFrame")
-  area_grid_sf <- st_as_sf(area_grid_sf)
-  area_grid_sf$grid_id <- 1:nrow(area_grid_sf)
-  area_grid_sf <- st_transform(area_grid_sf, st_crs(region))
-  area_grid_sf <- area_grid_sf[region,]
+
   
   # Distance Measures
   if (measure == "distance") {
@@ -88,7 +79,7 @@ prep_data <- function(outcome,
       do.call(cbind.data.frame, density_list) %>%
       setNames(paste0('density.', names(.)))
   }
-
+  
   # Both
   if (measure == "both") {
     print("Calculating distance & density...")
@@ -110,6 +101,13 @@ prep_data <- function(outcome,
     pred_values <- cbind.data.frame(dist,dens)
   }
   
+  # Convert raster grid to sf
+  area_grid_sf <- stars::st_as_stars(area_grid)
+  area_grid_sf <- st_as_sf(area_grid_sf, as_points = FALSE)
+  area_grid_sf$grid_id <- 1:nrow(area_grid_sf)
+  area_grid_sf <- st_transform(area_grid_sf, st_crs(hartford))
+  area_grid_sf <- area_grid_sf[hartford,]
+  
   # Set up merged model data
   model_data <-
     cbind.data.frame(coordinates(area_grid),
@@ -119,7 +117,7 @@ prep_data <- function(outcome,
     replace_na(list(n = 0)) %>%
     dplyr::filter(grid_id %in% area_grid_sf$grid_id)
   
-  return(list('lgbm_dataframe' = model_data,
+  return(list('gbm_dataframe' = model_data,
               'area_grid' = area_grid_sf))
 }
 
@@ -143,9 +141,9 @@ prep_data <- function(outcome,
   # This is due to garbage collection - not a real error
   # only solution at the moment
   {
-  options(show.error.messages = FALSE)
-  mask_raster <- rasterize(b, base_raster, getCover = TRUE) 
-  options(show.error.messages = TRUE)
+    options(show.error.messages = FALSE)
+    mask_raster <- rasterize(b, base_raster, getCover = TRUE) 
+    options(show.error.messages = TRUE)
   }
   
   return(mask_raster)
@@ -181,7 +179,7 @@ prep_data <- function(outcome,
   
   # Export distance
   vdata <- as.data.frame(grid_dist,long=TRUE)$value
-
+  
   return(vdata)
 }
 
@@ -204,11 +202,11 @@ prep_data <- function(outcome,
   # Calculate bandwidth automatically
   # NOTE: Can change to user-selected later
   
-  suppressWarnings( sp_ppp <- as.ppp(coordinates(sp_point),W=spWin) )
+  suppressWarnings( sp_ppp <- spatstat.geom::as.ppp(raster::coordinates(sp_point),W=spWin) )
   suppressWarnings( bdw <- bw.ppl(sp_ppp) )
   
   # Calculate Density based on chosen bandwidth
-  sp_den <- density.ppp(sp_ppp,sigma=bdw,edge=FALSE,warnings=FALSE) 
+  sp_den <- spatstat.core::density.ppp(sp_ppp,sigma=bdw,edge=FALSE,warnings=FALSE) 
   
   # Now export data as a vector of density valuces
   sp_dat <- as.data.frame(sp_den)                                         
@@ -216,6 +214,5 @@ prep_data <- function(outcome,
   vdata <- as.data.frame(kd_raster,long=TRUE)$value
   
   return(vdata)
-
+  
 }
-
