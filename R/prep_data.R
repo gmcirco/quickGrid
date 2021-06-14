@@ -22,7 +22,6 @@
 #' @import maptools
 #' @import raster
 #' @import spatstat
-#' @import rpart
 #' @importFrom magrittr %>%
 #' @importFrom sf st_as_sf
 #' @importFrom dplyr mutate
