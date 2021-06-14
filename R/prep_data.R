@@ -23,8 +23,6 @@
 #' @import maptools
 #' @import raster
 #' @import spatstat
-#' @import spatstat.core
-#' @import spatstat.geom
 #' @import rpart
 #' @importFrom magrittr %>%
 #' @importFrom sf st_as_sf
