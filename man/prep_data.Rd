@@ -10,7 +10,7 @@ prep_data(
   region,
   gridsize,
   measure = "density",
-  kernel = "auto"
+  kernel_bdw = "auto"
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ prep_data(
 
 \item{measure}{Types of measures for the predictor variables (either distance, density, or both). Defaults to distance.}
 
-\item{kernel}{Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection.}
+\item{kernel}{Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection via bw.ppl.}
 }
 \value{
 model list
@@ -32,9 +32,8 @@ model list
 \description{
 Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
 and a study region and converts it into a grid-based model object. Users can select whether to calculate nearest grid-cell distances,
-densities, or grid cell counts. Function returns a (non-spatial) dataframe and a spatial (\code{sf}) polygon grid. The function is intended
-to be used with the \code{lightgbm} wrapper \code{lgm_fit} or the \code{xgboost} wrapper \code{gbm_fit}, but can also
-be used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
+densities, or both. Function returns a (non-spatial) dataframe and a spatial (\code{sf}) polygon grid. The function is intended
+to be used with the \code{xgboost} wrapper \code{gbm_fit}, but can also used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
 }
 \examples{
 data("hartford_data")

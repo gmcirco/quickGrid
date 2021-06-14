@@ -62,5 +62,28 @@ Users should provide data prepared using the 'prep_data' function.
 By default, \code{gbm_fit} attempts to fit a reasonable model using built-in parameters, or using cross-validation (preferred!).
 Users are STRONGLY encouraged to tune the model parameters using some estimate of out-of-sample prediction.
 The built-in cross-validation step greatly aids this step by testing a range of values in a tuning grid,
-finding the model that minimizes the loss function, then fitting using the chosen parameters.
+finding the model that minimizes the chosen loss function, then fitting using the optimal set of parameters.
+}
+\examples{
+
+data("hartford_data")
+
+model_data <- 
+prep_data(outcome = hartford_data[['robbery']],
+          pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
+          region = hartford_data[['hartford']],
+          gridsize = 200,
+          measure = 'distance')
+          
+fit1 <- gbm_fit(
+  prep_data = model_data,
+  eta = 0.3,
+  gamma = 1,
+  max_depth = 6,
+  min_child_weight = 1,
+  subsample = .5,
+  nrounds = 1000,
+  plot_importance = TRUE
+  )
+
 }

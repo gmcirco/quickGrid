@@ -10,7 +10,7 @@
 #' has a substantial criminogenic effect. This can also be used with density or grid count measures as well.
 #'
 #' 
-#' @param model_list Model list output from `lgbm_fit` or `gbm_fit` function
+#' @param model_list Model list output from the `gbm_fit` function
 #' @param feature Predictor feature to be plotted
 #' @param grid_size Number of points to evaluate the predictor against
 #' 

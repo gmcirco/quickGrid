@@ -5,16 +5,15 @@
 #' 
 #' Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
 #' and a study region and converts it into a grid-based model object. Users can select whether to calculate nearest grid-cell distances,
-#' densities, or grid cell counts. Function returns a (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended 
-#' to be used with the `lightgbm` wrapper `lgm_fit` or the `xgboost` wrapper `gbm_fit`, but can also 
-#' be used in any other statistical model (i.e. `ranger`, `glmnet`).
+#' densities, or both. Function returns a (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended 
+#' to be used with the `xgboost` wrapper `gbm_fit`, but can also used in any other statistical model (i.e. `ranger`, `glmnet`).
 #' 
 #' @param outcome Outcome variable as a point shapefile
 #' @param pred_var Named list of shapefiles as spatial predictors.
 #' @param region Polygon shapefile enclosing the study region
 #' @param gridsize Size (in feet or meters) of the size of the spatial grid.
 #' @param measure Types of measures for the predictor variables (either distance, density, or both). Defaults to distance.
-#' @param kernel Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection.
+#' @param kernel Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection via bw.ppl.
 #' 
 #' @return model list
 #' 
@@ -47,7 +46,7 @@ prep_data <- function(outcome,
                       region,
                       gridsize,
                       measure = 'density',
-                      kernel = 'auto') {
+                      kernel_bdw = 'auto') {
   
   # Convert simple features to spatial
   sp_outcome <- as(outcome, "Spatial")
@@ -71,7 +70,7 @@ prep_data <- function(outcome,
   if (measure == "density") {
     print("Calculating densities...")
     density_list <-
-      lapply(pred_var, .kernel_density, area_grid = area_grid)
+      lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
     
     pred_values <-
       do.call(cbind.data.frame, density_list) %>%
@@ -90,7 +89,7 @@ prep_data <- function(outcome,
       setNames(paste0('distance.', names(.)))
     
     density_list <-
-      lapply(pred_var, .kernel_density, area_grid = area_grid)
+      lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
     
     dens <-
       do.call(cbind.data.frame, density_list) %>%
@@ -120,6 +119,11 @@ prep_data <- function(outcome,
 }
 
 
+#----------------------------------------------------#
+# HELPER FUNCTIONS
+#----------------------------------------------------#
+
+# .MAKE_GRID
 # Function to convert sf polygon into raster grid
 # needed for both measures
 # shamelessly borrowed from Wheeler & Steenbeck
@@ -148,6 +152,7 @@ prep_data <- function(outcome,
 }
 
 
+# .GRID_COUNT
 # Function for rasterized grid counts
 .grid_count <- function(point_data, area_grid){
   
@@ -164,6 +169,7 @@ prep_data <- function(outcome,
 }
 
 
+# .NEAREST_FEATURE
 # Fast helper function for calculating nearest pairwise distances
 # Used above for distance measures
 
@@ -181,12 +187,12 @@ prep_data <- function(outcome,
   return(vdata)
 }
 
-
+# .KERNEL_DENSITY
 # Calculate Kernel Density
 # Code also borrowed from Wheeler & Steenbeck:
 # https://link.springer.com/article/10.1007/s10940-020-09457-7#data-availability
 
-.kernel_density <- function(point_data, area_grid){
+.kernel_density <- function(point_data, area_grid, bdw_opt = kernel_bdw){
   
   # Convert simple features point data to Spatial
   sp_point <- as(point_data, "Spatial")
@@ -196,12 +202,13 @@ prep_data <- function(outcome,
   spWin <- spatstat.geom::as.owin(as.data.frame(peval))
   
   # Convert Spatial object to .ppp
-  # Set up grid window
-  # Calculate bandwidth automatically
-  # NOTE: Can change to user-selected later
-  
   suppressWarnings( sp_ppp <- spatstat.geom::as.ppp(raster::coordinates(sp_point),W=spWin) )
-  suppressWarnings( bdw <- bw.ppl(sp_ppp) )
+  
+  # Automatic kernel selection
+  # Using bw.ppl
+  if(bdw_opt == 'auto'){
+    suppressWarnings( bdw <- spatstat.core::bw.ppl(sp_ppp) )
+  }
   
   # Calculate Density based on chosen bandwidth
   sp_den <- spatstat.core::density.ppp(sp_ppp,sigma=bdw,edge=FALSE,warnings=FALSE) 

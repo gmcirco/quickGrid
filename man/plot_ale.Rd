@@ -7,7 +7,7 @@
 plot_ale(model_list, feature, grid_size = 30)
 }
 \arguments{
-\item{model_list}{Model list output from \code{lgbm_fit} or \code{gbm_fit} function}
+\item{model_list}{Model list output from the \code{gbm_fit} function}
 
 \item{feature}{Predictor feature to be plotted}
 
