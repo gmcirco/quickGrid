@@ -18,7 +18,14 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-`quickgrid` is a package intended to make it easy and fast to generate place-based crime predictions using a variety of spatial risk factors. Tools are included in this package to help speed up the processing of data (including calculating distance and density measures for spatial risk factors) and the fitting of models for prediction estimates. Currently, this package utilizes a gradient boosted tree model implementing the `lightgbm` package. A series of wrappers help users fit reasonable starting models using a cross-validated tuning grid. Much of the inspiration of this package comes from an earlier paper by [Wheeler and Steenbeck (2020)](https://link.springer.com/article/10.1007/s10940-020-09457-7).
+`quickgrid` is a package intended to make it easy and fast to generate place-based crime predictions using a variety of spatial risk factors. Tools are included in this package to help speed up the processing of data (including calculating distance and density measures for spatial risk factors) and the fitting of models for prediction estimates. Currently, this package utilizes a gradient boosted tree model implementing the `xgboost` package. A series of wrappers help users fit reasonable starting models using a cross-validated tuning grid. Much of the inspiration of this package comes from an earlier paper by [Wheeler and Steenbeck (2020)](https://link.springer.com/article/10.1007/s10940-020-09457-7).
+
+This package is still in its infancy (as of 2021-06-14). A number of features are planned for the future, including:
+
+* Predictive Accuracy Index (PAI) calculation
+* GoogleMaps & OpenStreet Maps integration
+* Grid count and polygon-level predictors
+* Shapely value decomposition
 
 ## Installation
 
@@ -29,8 +36,6 @@ You can install the current experimental version at [GitHub](https://github.com/
 devtools::install_github("gmcirco/quickgrid")
 ```
 
-*NOTE*: There are a **lot** of changes coming in the near future! 
-
 ## The Major Functions
 
 `quickGrid` has two major functions. One sets up the raw data for model fitting (`prep_data`) and the other simplifies the fitting of a gradient boosted tree (GBM) model (`fit_gbm`).
@@ -40,22 +45,27 @@ The general workflow for the `quickGrid` package is to first set up your data us
 
 ### fit_gbm
 
-`fit_gbm` takes the data created by `prep_data` and fits a predictive model using a tree-based boosted model via `xgboost`. While some reasonable defaults are set for the function, it is highly recommended that users make use of the built-in cross-validation function to help choose parameters that will minimize overfitting. The `fit_gbm` function will automatically fit either binary $(0,1)$, Poisson $(0,1,2,..n)$, or regression. You can also specify custom models using the parameters listed [here](https://xgboost.readthedocs.io/en/latest/parameter.html).
+`fit_gbm` takes the data created by `prep_data` and fits a predictive model using a tree-based boosted model via `xgboost`. While some reasonable defaults are set for the function, it is highly recommended that users make use of the built-in cross-validation function to help choose parameters that will minimize overfitting. The `fit_gbm` function will automatically fit either binary $(0,1)$, Poisson $(0,1,2,..n)$, or regression for non-discrete outcomes. You can also specify custom models using the parameters listed [here](https://xgboost.readthedocs.io/en/latest/parameter.html).
 
 
 ## Data Example: Hartford, CT Robberies
 
-This is a minimum working example using the data provided in the `quickGrid` package. `quickGrid` is packaged with an example dataset containing robberies in Hartford CT for 2018 and 2019. A number of spatial predictors are packed in as well, including the locations of bars, liquor stores, gas stations, pharmacies, and dollar stores (labeled 'retail'). For simplicity, these are packaged as a list of `sf` objects that can be easily plugged into our model prep function.
+This is a minimum working example using the data provided in the `quickGrid` package. `quickGrid` is packaged with an example dataset containing robberies in Hartford CT for 2018 and 2019. A number of spatial predictors are packed in as well, including the locations of bars, liquor stores, gas stations, pharmacies, and dollar stores (labeled 'retail'). For simplicity, these are packaged as a list of `sf` objects that can be easily plugged into our model prep function. 
 
 ### Setting up your data
 
 ```{r example, warning=FALSE}
 library(quickGrid)
 
+# Load data and examine feature names
+
 data("hartford_data")
 
 names(hartford_data)
  
+# Create an object to hold model data
+# using 'prep_data' function
+
 model_data <-
   prep_data(
     outcome = hartford_data[['robbery']],
@@ -63,13 +73,14 @@ model_data <-
     region = hartford_data[['hartford']],
     gridsize = 200,
     measure = 'distance')
+
 ```
 
 This will give us a list of two objects: a model dataframe with the necessary variables attached and a shapefile corresponding to the grid cells falling within the study boundaries. The model dataframe, in particular, has a few important fields:
 
-1. X-Y coordinates and a unique grid cell identifier
+1. x-y coordinates and a unique grid cell identifier
 2. Grid counts of the outcome variable (denoted `n`)
-3. Distances or densities to the nearest predictor feature 
+3. Distances or densities to the nearest predictor feature (denoted `distance.` or `.density.`)
 
 ```{r}
 # Top 6 rows of model dataframe
@@ -102,7 +113,28 @@ We can directly access the model predictions as well, by examining the model dat
 ```{r}
 head(gbm_fit$model_dataframe)
 ```
-We can also plot the accumulated local effect of any predictor variable. For example, if we wanted to know the effect of liquor stores on robberies up to any distance, we can calculate it using the `plot_ale` function. Here it looks like the effect is highly localized, with the effect decaying rapidly as distance from a liquor store increases.
+
+## Plotting Functions
+
+`quickGrid` also comes with a few functions to help visualize the results from your prediction model. In general, we are much more interested in the *predictions* that come from the model than the individual impact of a single parameter. In addition, boosted tree-based models will generate hundreds (or even thousands) of weak learners, that make individual parameters difficult to examine. 
+
+### plot_gbm
+
+The `plot_gbm` function can be used to simply plot the grid-based predictions from the model function. This would correspond to a 'risk' map, where higher values imply a higher probability of a crime occuring in that grid cell in the future. Plotting this map is easy: all you have to provide is the name of the model list generated by the `gbm_fit` function.
+
+```{r, out.width="500px"}
+plot_gbm(gbm_fit)
+```
+
+In addition, you can also examine the value of one or more of your model predictors. If you want to see the grid values for your 'distance' parameter, you can plot them individually. For example, looking at the distance of every grid cell to the nearest bar could be done by specifying `feature = 'distance.bar'`. You can also plot *all* distance or density values by simply added `feature = 'distance'`. 
+
+```{r, out.width="500px"}
+plot_gbm(gbm_fit, feature = 'distance')
+```
+
+### plot_ale
+
+We can also plot the accumulated local effect (see [here](https://arxiv.org/pdf/1612.08468.pdf) for more) of any predictor variable. For example, if we wanted to know the effect of liquor stores on robberies up to any distance, we can calculate it using the `plot_ale` function. Here it looks like the effect is highly localized, with the effect decaying rapidly as distance from a liquor store increases.
 
 ```{r, out.width="500px"}
 plot_ale(gbm_fit, 'distance.liquor')
@@ -110,7 +142,7 @@ plot_ale(gbm_fit, 'distance.liquor')
 
 ### Fitting your model with cross-validation
 
-Another (highly-suggested) option is to utilize the cross-validation function in `gbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. For example: if we provide 3 values for 3 of the parameters we then must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations. You may wish to tune the parameters separately, check the results against your test dataset, then re-tune the model against the other parameters.
+Another (highly-suggested) option is to utilize the cross-validation function in `gbm_fit` to determine the optimal value for the model parameters. Currently, the cross-validation function chooses values for the number of leaves, the learning rate, and the number of iterations. These can be specified by adding `cv=TRUE` to the model, then providing values for the cross-validation tuning grid for each parameter. The cross-validation function then iteratively fits models for each of the unique parameter combinations until an optimal one is found. For example: if we provide 3 values for 3 of the parameters we then must then fit $3^3 = 27$ models. While more options are typically better, this can become quite time intensive with many combinations. You may wish to tune the parameters separately, check the results against your test dataset, then re-tune the model against the other parameters. This is a more time consuming process, but will almost always result in better predictions than ad-hoc parameter selection.
 
 ```{r, eval=FALSE}
 gbm_fit_cv <- gbm_fit(prep_data = model_data,

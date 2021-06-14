@@ -12,11 +12,19 @@ Tools are included in this package to help speed up the processing of
 data (including calculating distance and density measures for spatial
 risk factors) and the fitting of models for prediction estimates.
 Currently, this package utilizes a gradient boosted tree model
-implementing the `lightgbm` package. A series of wrappers help users fit
+implementing the `xgboost` package. A series of wrappers help users fit
 reasonable starting models using a cross-validated tuning grid. Much of
 the inspiration of this package comes from an earlier paper by [Wheeler
 and Steenbeck
 (2020)](https://link.springer.com/article/10.1007/s10940-020-09457-7).
+
+This package is still in its infancy (as of 2021-06-14). A number of
+features are planned for the future, including:
+
+-   Predictive Accuracy Index (PAI) calculation
+-   GoogleMaps & OpenStreet Maps integration
+-   Grid count and polygon-level predictors
+-   Shapely value decomposition
 
 ## Installation
 
@@ -27,8 +35,6 @@ You can install the current experimental version at
 # install.packages("devtools")
 devtools::install_github("gmcirco/quickgrid")
 ```
-
-*NOTE*: There are a **lot** of changes coming in the near future!
 
 ## The Major Functions
 
@@ -54,8 +60,9 @@ reasonable defaults are set for the function, it is highly recommended
 that users make use of the built-in cross-validation function to help
 choose parameters that will minimize overfitting. The `fit_gbm` function
 will automatically fit either binary (0, 1), Poisson (0, 1, 2, ..*n*),
-or regression. You can also specify custom models using the parameters
-listed [here](https://xgboost.readthedocs.io/en/latest/parameter.html).
+or regression for non-discrete outcomes. You can also specify custom
+models using the parameters listed
+[here](https://xgboost.readthedocs.io/en/latest/parameter.html).
 
 ## Data Example: Hartford, CT Robberies
 
@@ -72,11 +79,16 @@ objects that can be easily plugged into our model prep function.
 ``` r
 library(quickGrid)
 
+# Load data and examine feature names
+
 data("hartford_data")
 
 names(hartford_data)
 #> [1] "hartford" "robbery"  "bar"      "liquor"   "gas"      "pharmacy" "retail"
  
+# Create an object to hold model data
+# using 'prep_data' function
+
 model_data <-
   prep_data(
     outcome = hartford_data[['robbery']],
@@ -92,9 +104,10 @@ necessary variables attached and a shapefile corresponding to the grid
 cells falling within the study boundaries. The model dataframe, in
 particular, has a few important fields:
 
-1.  X-Y coordinates and a unique grid cell identifier
+1.  x-y coordinates and a unique grid cell identifier
 2.  Grid counts of the outcome variable (denoted `n`)
-3.  Distances or densities to the nearest predictor feature
+3.  Distances or densities to the nearest predictor feature (denoted
+    `distance.` or `.density.`)
 
 ``` r
 # Top 6 rows of model dataframe
@@ -172,26 +185,74 @@ head(gbm_fit$model_dataframe)
 #> 21      21  0.10 1012820 854890.8 0     11379.43        2177.169     10391.53
 #> 22      22  0.10 1013020 854890.8 0     11188.87        1986.044     10367.33
 #> 23      23  0.10 1013220 854890.8 0     10998.65        1796.853     10346.94
-#>    distance.pharmacy distance.retail    gbm.pred                       geometry
-#> 18          3965.104        2953.137 0.001154631 POLYGON ((1012120 854990.8,...
-#> 19          3841.218        2776.535 0.001529267 POLYGON ((1012320 854990.8,...
-#> 20          3723.957        2603.320 0.002322025 POLYGON ((1012520 854990.8,...
-#> 21          3613.967        2434.215 0.001908765 POLYGON ((1012720 854990.8,...
-#> 22          3511.932        2270.139 0.001752649 POLYGON ((1012920 854990.8,...
-#> 23          3418.562        2112.263 0.001365357 POLYGON ((1013120 854990.8,...
+#>    distance.pharmacy distance.retail     gbm.pred
+#> 18          3965.104        2953.137 0.0007300864
+#> 19          3841.218        2776.535 0.0019423570
+#> 20          3723.957        2603.320 0.0007771543
+#> 21          3613.967        2434.215 0.0015391458
+#> 22          3511.932        2270.139 0.0022933786
+#> 23          3418.562        2112.263 0.0040526851
+#>                          geometry
+#> 18 POLYGON ((1012120 854990.8,...
+#> 19 POLYGON ((1012320 854990.8,...
+#> 20 POLYGON ((1012520 854990.8,...
+#> 21 POLYGON ((1012720 854990.8,...
+#> 22 POLYGON ((1012920 854990.8,...
+#> 23 POLYGON ((1013120 854990.8,...
 ```
 
-We can also plot the accumulated local effect of any predictor variable.
-For example, if we wanted to know the effect of liquor stores on
-robberies up to any distance, we can calculate it using the `plot_ale`
-function. Here it looks like the effect is highly localized, with the
-effect decaying rapidly as distance from a liquor store increases.
+## Plotting Functions
+
+`quickGrid` also comes with a few functions to help visualize the
+results from your prediction model. In general, we are much more
+interested in the *predictions* that come from the model than the
+individual impact of a single parameter. In addition, boosted tree-based
+models will generate hundreds (or even thousands) of weak learners, that
+make individual parameters difficult to examine.
+
+### plot\_gbm
+
+The `plot_gbm` function can be used to simply plot the grid-based
+predictions from the model function. This would correspond to a ‘risk’
+map, where higher values imply a higher probability of a crime occuring
+in that grid cell in the future. Plotting this map is easy: all you have
+to provide is the name of the model list generated by the `gbm_fit`
+function.
+
+``` r
+plot_gbm(gbm_fit)
+```
+
+<img src="man/figures/README-unnamed-chunk-5-1.png" width="500px" />
+
+In addition, you can also examine the value of one or more of your model
+predictors. If you want to see the grid values for your ‘distance’
+parameter, you can plot them individually. For example, looking at the
+distance of every grid cell to the nearest bar could be done by
+specifying `feature = 'distance.bar'`. You can also plot *all* distance
+or density values by simply added `feature = 'distance'`.
+
+``` r
+plot_gbm(gbm_fit, feature = 'distance')
+```
+
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="500px" />
+
+### plot\_ale
+
+We can also plot the accumulated local effect (see
+[here](https://arxiv.org/pdf/1612.08468.pdf) for more) of any predictor
+variable. For example, if we wanted to know the effect of liquor stores
+on robberies up to any distance, we can calculate it using the
+`plot_ale` function. Here it looks like the effect is highly localized,
+with the effect decaying rapidly as distance from a liquor store
+increases.
 
 ``` r
 plot_ale(gbm_fit, 'distance.liquor')
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-7-1.png" width="500px" />
 
 ### Fitting your model with cross-validation
 
@@ -208,6 +269,8 @@ then fit 3<sup>3</sup> = 27 models. While more options are typically
 better, this can become quite time intensive with many combinations. You
 may wish to tune the parameters separately, check the results against
 your test dataset, then re-tune the model against the other parameters.
+This is a more time consuming process, but will almost always result in
+better predictions than ad-hoc parameter selection.
 
 ``` r
 gbm_fit_cv <- gbm_fit(prep_data = model_data,
