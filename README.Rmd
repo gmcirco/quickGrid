@@ -26,6 +26,7 @@ This package is still in its infancy (as of 2021-06-14). A number of features ar
 * GoogleMaps & OpenStreet Maps integration
 * Grid count and polygon-level predictors
 * Shapely value decomposition
+* and more...!
 
 ## Installation
 
