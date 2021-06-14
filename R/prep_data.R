@@ -100,7 +100,8 @@ prep_data <- function(outcome,
   
   # Convert raster grid to sf
   area_grid_sf <- stars::st_as_stars(area_grid)
-  area_grid_sf <- st_as_sf(area_grid_sf, as_points = FALSE)
+  area_grid_sf <- st_as_sf(area_grid_sf, as_points = FALSE, crs)
+  st_crs(area_grid_sf) <- st_crs(region)
   area_grid_sf$grid_id <- 1:nrow(area_grid_sf)
   area_grid_sf <- st_transform(area_grid_sf, st_crs(region))
   area_grid_sf <- area_grid_sf[region,]
