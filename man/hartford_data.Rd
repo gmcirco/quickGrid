@@ -5,10 +5,16 @@
 \alias{hartford_data}
 \title{Crimes and Spatial Risk Factors for Hartford, CT}
 \format{
-A data frame with 53940 rows and 10 variables:
+A named list containing sf objects for Hartford, CT
 \describe{
-\item{price}{price, in US dollars}
-\item{carat}{weight of the diamond, in carats}
+\item{hartford}{Polygon shapefile containing the city of Hartford}
+\item{robbery}{All robberies reported to Hartford PD between the years 2017 - 2019}
+\item{bar}{Point location of bars}
+\item{nightclub}{Point location of nightclubs}
+\item{liquor}{Point location of liquor stores}
+\item{gas}{Point location of gas stations and fueling stations}
+\item{pharmacy}{Point location of pharmacies}
+\item{restaurant}{Point location of restaurants}
 ...
 }
 }
@@ -20,6 +26,9 @@ hartford_data
 }
 \description{
 A dataset containing robberies in Hartford CT for the years
-2018 - 2019. Spatial risk factors and city boundaries are included.
+2017 - 2019. Spatial risk factors and city boundaries are included.
+Crime features obtained from Hartford open data
+Spatial risk factors obtained using the Google Places API
+See: https://developers.google.com/maps/documentation/places/web-service/search
 }
 \keyword{datasets}
