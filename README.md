@@ -25,6 +25,7 @@ features are planned for the future, including:
 -   GoogleMaps & OpenStreet Maps integration
 -   Grid count and polygon-level predictors
 -   Shapely value decomposition
+-   and more…!
 
 ## Installation
 
@@ -68,10 +69,10 @@ models using the parameters listed
 
 This is a minimum working example using the data provided in the
 `quickGrid` package. `quickGrid` is packaged with an example dataset
-containing robberies in Hartford CT for 2018 and 2019. A number of
+containing robberies in Hartford CT for 2017 though 2019. A number of
 spatial predictors are packed in as well, including the locations of
-bars, liquor stores, gas stations, pharmacies, and dollar stores
-(labeled ‘retail’). For simplicity, these are packaged as a list of `sf`
+bars, night clubs, liquor stores, gas stations, pharmacies, and
+restaurants. For simplicity, these are packaged as a list of `sf`
 objects that can be easily plugged into our model prep function.
 
 ### Setting up your data
@@ -84,18 +85,17 @@ library(quickGrid)
 data("hartford_data")
 
 names(hartford_data)
-#> [1] "hartford" "robbery"  "bar"      "liquor"   "gas"      "pharmacy" "retail"
+#> [1] "hartford"   "robbery"    "bar"        "nightclub"  "liquor"    
+#> [6] "gas"        "pharmacy"   "restaurant"
  
 # Create an object to hold model data
 # using 'prep_data' function
 
-model_data <-
-  prep_data(
-    outcome = hartford_data[['robbery']],
-    pred_var = hartford_data[c("bar", "liquor", "gas", "pharmacy", "retail")],
-    region = hartford_data[['hartford']],
-    gridsize = 200,
-    measure = 'distance')
+model_data <- prep_data(outcome = hartford_data$robbery,
+                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+                       region = hartford_data$hartford,
+                       gridsize = 200,
+                       measure = 'distance')
 #> [1] "Calculating distances..."
 ```
 
@@ -112,20 +112,20 @@ particular, has a few important fields:
 ``` r
 # Top 6 rows of model dataframe
 head(model_data$gbm_dataframe)
-#>         x        y n distance.bar distance.liquor distance.gas
-#> 1 1012220 854890.8 0     11952.96        2758.104     10486.70
-#> 2 1012420 854890.8 0     11761.49        2563.484     10451.25
-#> 3 1012620 854890.8 0     11570.31        2369.759     10419.51
-#> 4 1012820 854890.8 0     11379.43        2177.169     10391.53
-#> 5 1013020 854890.8 0     11188.87        1986.044     10367.33
-#> 6 1013220 854890.8 0     10998.65        1796.853     10346.94
-#>   distance.pharmacy distance.retail grid_id
-#> 1          3965.104        2953.137      18
-#> 2          3841.218        2776.535      19
-#> 3          3723.957        2603.320      20
-#> 4          3613.967        2434.215      21
-#> 5          3511.932        2270.139      22
-#> 6          3418.562        2112.263      23
+#>         x        y n distance.bar distance.nightclub distance.liquor
+#> 1 1012220 854890.8 0    10130.460           11626.01        2758.104
+#> 2 1012420 854890.8 0    10064.503           11479.73        2563.484
+#> 3 1012620 854890.8 0    10002.112           11335.10        2369.759
+#> 4 1012820 854890.8 0     9943.352           11192.17        2177.169
+#> 5 1013020 854890.8 0     9888.289           11051.01        1986.044
+#> 6 1013220 854890.8 0     9836.984           10911.70        1796.853
+#>   distance.gas distance.pharmacy distance.restaurant grid_id
+#> 1     3042.943          3965.104            2577.497      18
+#> 2     2862.412          3841.218            2382.150      19
+#> 3     2684.642          3723.957            2187.644      20
+#> 4     2510.220          3613.967            1994.225      21
+#> 5     2339.894          3511.932            1802.244      22
+#> 6     2174.627          3418.562            1612.213      23
 ```
 
 Here we have the distances for each of the 5 predictor features for each
@@ -173,25 +173,32 @@ hot-spots for crime prevention.
 
 ``` r
 head(gbm_fit$model_dataframe)
-#> Simple feature collection with 6 features and 11 fields
+#> Simple feature collection with 6 features and 12 fields
 #> Geometry type: POLYGON
 #> Dimension:     XY
 #> Bounding box:  xmin: 1012120 ymin: 854790.8 xmax: 1013320 ymax: 854990.8
 #> Projected CRS: NAD83(NSRS2007) / Connecticut (ftUS)
-#>    grid_id layer       x        y n distance.bar distance.liquor distance.gas
-#> 18      18  0.00 1012220 854890.8 0     11952.96        2758.104     10486.70
-#> 19      19  0.00 1012420 854890.8 0     11761.49        2563.484     10451.25
-#> 20      20  0.02 1012620 854890.8 0     11570.31        2369.759     10419.51
-#> 21      21  0.10 1012820 854890.8 0     11379.43        2177.169     10391.53
-#> 22      22  0.10 1013020 854890.8 0     11188.87        1986.044     10367.33
-#> 23      23  0.10 1013220 854890.8 0     10998.65        1796.853     10346.94
-#>    distance.pharmacy distance.retail    gbm.pred                       geometry
-#> 18          3965.104        2953.137 0.001707109 POLYGON ((1012120 854990.8,...
-#> 19          3841.218        2776.535 0.001908820 POLYGON ((1012320 854990.8,...
-#> 20          3723.957        2603.320 0.004160899 POLYGON ((1012520 854990.8,...
-#> 21          3613.967        2434.215 0.001865468 POLYGON ((1012720 854990.8,...
-#> 22          3511.932        2270.139 0.005470702 POLYGON ((1012920 854990.8,...
-#> 23          3418.562        2112.263 0.004215957 POLYGON ((1013120 854990.8,...
+#>    grid_id layer       x        y n distance.bar distance.nightclub
+#> 18      18  0.00 1012220 854890.8 0    10130.460           11626.01
+#> 19      19  0.00 1012420 854890.8 0    10064.503           11479.73
+#> 20      20  0.02 1012620 854890.8 0    10002.112           11335.10
+#> 21      21  0.10 1012820 854890.8 0     9943.352           11192.17
+#> 22      22  0.10 1013020 854890.8 0     9888.289           11051.01
+#> 23      23  0.10 1013220 854890.8 0     9836.984           10911.70
+#>    distance.liquor distance.gas distance.pharmacy distance.restaurant
+#> 18        2758.104     3042.943          3965.104            2577.497
+#> 19        2563.484     2862.412          3841.218            2382.150
+#> 20        2369.759     2684.642          3723.957            2187.644
+#> 21        2177.169     2510.220          3613.967            1994.225
+#> 22        1986.044     2339.894          3511.932            1802.244
+#> 23        1796.853     2174.627          3418.562            1612.213
+#>       gbm.pred                       geometry
+#> 18 0.001900735 POLYGON ((1012120 854990.8,...
+#> 19 0.003929342 POLYGON ((1012320 854990.8,...
+#> 20 0.001821776 POLYGON ((1012520 854990.8,...
+#> 21 0.003597398 POLYGON ((1012720 854990.8,...
+#> 22 0.012617457 POLYGON ((1012920 854990.8,...
+#> 23 0.007686861 POLYGON ((1013120 854990.8,...
 ```
 
 ## Plotting Functions

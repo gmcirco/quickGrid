@@ -51,7 +51,8 @@ The general workflow for the `quickGrid` package is to first set up your data us
 
 ## Data Example: Hartford, CT Robberies
 
-This is a minimum working example using the data provided in the `quickGrid` package. `quickGrid` is packaged with an example dataset containing robberies in Hartford CT for 2018 and 2019. A number of spatial predictors are packed in as well, including the locations of bars, liquor stores, gas stations, pharmacies, and dollar stores (labeled 'retail'). For simplicity, these are packaged as a list of `sf` objects that can be easily plugged into our model prep function. 
+This is a minimum working example using the data provided in the `quickGrid` package. `quickGrid` is packaged with an example dataset containing robberies in Hartford CT for 2017 though 2019. A number of spatial predictors are packed in 
+as well, including the locations of bars, night clubs, liquor stores, gas stations, pharmacies, and restaurants. For simplicity, these are packaged as a list of `sf` objects that can be easily plugged into our model prep function. 
 
 ### Setting up your data
 
@@ -67,13 +68,11 @@ names(hartford_data)
 # Create an object to hold model data
 # using 'prep_data' function
 
-model_data <-
-  prep_data(
-    outcome = hartford_data[['robbery']],
-    pred_var = hartford_data[c("bar", "liquor", "gas", "pharmacy", "retail")],
-    region = hartford_data[['hartford']],
-    gridsize = 200,
-    measure = 'distance')
+model_data <- prep_data(outcome = hartford_data$robbery,
+                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+                       region = hartford_data$hartford,
+                       gridsize = 200,
+                       measure = 'distance')
 
 ```
 
