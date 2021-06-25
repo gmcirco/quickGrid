@@ -3,17 +3,21 @@
 #----------------------------------------------------#
 #' Prepare data for analysis
 #' 
-#' Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
-#' and a study region and converts it into a grid-based model object. Users can select whether to calculate nearest grid-cell distances,
-#' densities, or both. Function returns a (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended 
-#' to be used with the `xgboost` wrapper `gbm_fit`, but can also used in any other statistical model (i.e. `ranger`, `glmnet`).
+#' Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list 
+#' of predictor variables, and a study region and converts it into a grid-based model object. 
+#' Users can select whether to calculate nearest grid-cell distances,densities, or both. Function returns a 
+#' (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended to be used with the `xgboost` 
+#' wrapper `gbm_fit`, but can also used in any other statistical model (i.e. `ranger`, `glmnet`).
 #' 
 #' @param outcome Outcome variable as a point shapefile
 #' @param pred_var Named list of shapefiles as spatial predictors.
 #' @param region Polygon shapefile enclosing the study region
 #' @param gridsize Size (in feet or meters) of the size of the spatial grid.
-#' @param measure Types of measures for the predictor variables (either distance, density, or both). Defaults to distance.
-#' @param kernel Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection via bw.ppl.
+#' @param measure Types of measures for the predictor variables (either distance, density, or both). 
+#' Defaults to distance.
+#' @param kernel_bdw Either a numeric value or named list of bandwidth distances if 'density' is chosen. If a named list
+#' is provided, the names should match the named predictor variables in the `pred_var` object. If nothing is provided,
+#' defaults to automatic bandwidth selection via spatstat::bw.ppl.
 #' 
 #' @return model list
 #' 
@@ -31,12 +35,20 @@
 #' @examples
 #' data("hartford_data")
 #' 
-#' model_data <- 
-#' prep_data(outcome = hartford_data[['robbery']],
-#'           pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
-#'           region = hartford_data[['hartford']],
-#'           gridsize = 200,
-#'           measure = 'distance')
+#' # Prepping data for distance only
+#' model_data <- prep_data(outcome = hartford_data$robbery,
+#'                        pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+#'                        region = hartford_data$hartford,
+#'                        gridsize = 200,
+#'                        measure = 'distance')
+#'                        
+#'# Prepping data for density, with selected 1000 foot bandwidth
+#' model_data2 <- prep_data(outcome = hartford_data$robbery,
+#'                        pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+#'                        region = hartford_data$hartford,
+#'                        gridsize = 200,
+#'                        measure = 'density',
+#'                        kernel_bdw = 1000)
 #'           
 #'@export
 
@@ -57,6 +69,7 @@ prep_data <- function(outcome,
   # Distance Measures
   if (measure == "distance") {
     print("Calculating distances...")
+  
     distance_list <-
       lapply(pred_var, .nearest_feature, area_grid = area_grid)
     
@@ -68,9 +81,16 @@ prep_data <- function(outcome,
   # Density Measures
   if (measure == "density") {
     print("Calculating densities...")
-    density_list <-
-      lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
     
+    # If kernel_bdw is a list, 
+    # go to kernel_density list function
+    if(is.list(kernel_bdw)){
+      density_list <- .kernel_density_list(pred_vars = pred_var, area_grid = area_grid, bdw_opt = kernel_bdw)
+    } else {
+      density_list <-
+        lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
+    }
+  
     pred_values <-
       do.call(cbind.data.frame, density_list) %>%
       setNames(paste0('density.', names(.)))
@@ -87,8 +107,14 @@ prep_data <- function(outcome,
       do.call(cbind.data.frame, distance_list) %>%
       setNames(paste0('distance.', names(.)))
     
-    density_list <-
-      lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
+    # If kernel_bdw is a list, 
+    # go to kernel_density list function
+    if(is.list(kernel_bdw)){
+      density_list <- .kernel_density_list(pred_vars = pred_var, area_grid = area_grid, bdw_opt = kernel_bdw)
+    } else {
+      density_list <-
+        lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
+    }
     
     dens <-
       do.call(cbind.data.frame, density_list) %>%
@@ -168,7 +194,6 @@ prep_data <- function(outcome,
   return(vdata[1:length(area_grid)])
 }
 
-
 # .NEAREST_FEATURE
 # Fast helper function for calculating nearest pairwise distances
 # Used above for distance measures
@@ -204,16 +229,19 @@ prep_data <- function(outcome,
   # Convert Spatial object to .ppp
   suppressWarnings( sp_ppp <- spatstat.geom::as.ppp(raster::coordinates(sp_point),W=spWin) )
   
-  # Automatic kernel selection
-  # Using bw.ppl
-  if(bdw_opt == 'auto'){
-    suppressWarnings( bdw <- spatstat.core::bw.ppl(sp_ppp) )
+  # Kernel Selection
+  # If a numeric value is supplied, use the chosen value
+  # Otherwise, use automatic bandwidth selection
+  if (is.numeric(bdw_opt)) {
+    bdw <- bdw_opt
+  } else if (bdw_opt == 'auto') {
+    suppressWarnings(bdw <- spatstat.core::bw.ppl(sp_ppp))
   }
   
   # Calculate Density based on chosen bandwidth
   sp_den <- spatstat.core::density.ppp(sp_ppp,sigma=bdw,edge=FALSE,warnings=FALSE) 
   
-  # Now export data as a vector of density valuces
+  # Now export data as a vector of density values
   sp_dat <- as.data.frame(sp_den)                                         
   kd_raster <- raster::rasterFromXYZ(sp_dat,res=res(area_grid),crs=crs(area_grid))
   vdata <- as.data.frame(kd_raster,long=TRUE)$value
@@ -221,3 +249,40 @@ prep_data <- function(outcome,
   return(vdata)
   
 }
+
+# .KERNEL_DENSITY_LIST
+# If a named list is provided for bandwidth
+# Calculate kernel density separately for each value
+# Using a for loop to iterate through the base .kernel_density fun
+
+.kernel_density_list <-
+  function(pred_vars, area_grid, bdw_opt = kernel_bdw) {
+    
+    # Check if names are provided
+    if(length(names(bdw_opt)) != length(bdw_opt))
+      stop("Names must be provided for all bandwidths")
+    
+    # Re-sort list based on the order 
+    # in which predictor variables were entered
+    bdw_list <-
+      bdw_opt[order(factor(names(bdw_opt), levels = names(pred_vars)))]
+    
+    # Create empty list to hold results
+    kde_list <- list()
+    
+    # Iterate over all predictor variables
+    for (i in 1:length(pred_vars)) {
+      kde_list[[i]] <-
+        .kernel_density(point_data = pred_vars[[i]],
+                        area_grid = area_grid,
+                        bdw_opt = bdw_list[[i]])
+    }
+    
+    # Set names on list
+    names(kde_list) <- names(bdw_list)
+    
+    # Export list of kernel density values
+    return(kde_list)
+  }
+
+

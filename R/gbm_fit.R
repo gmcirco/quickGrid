@@ -38,12 +38,12 @@
 #' 
 #' data("hartford_data")
 #' 
-#' model_data <- 
-#' prep_data(outcome = hartford_data[['robbery']],
-#'           pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
-#'           region = hartford_data[['hartford']],
-#'           gridsize = 200,
-#'           measure = 'distance')
+#' # Prepping data for distance only
+#' model_data <- prep_data(outcome = hartford_data$robbery,
+#'                        pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+#'                        region = hartford_data$hartford,
+#'                        gridsize = 200,
+#'                        measure = 'distance')
 #'           
 #' fit1 <- gbm_fit(
 #'   prep_data = model_data,
@@ -269,9 +269,14 @@ gbm_fit <- function(prep_data,
         subsample = as.numeric(tuning_grid[i,][5]),
         objective = objective,
         eval_metric = eval_metric)
+    
+    # Print status of cv
     print(unlist(param))
     
-    
+    # Fit cross-validated model
+    # Using parameters from tuning grid
+    # Set early stopping to 10% of total iterations
+    # (possibly allow changing in the future?)
     cv.out <-
       xgb.cv(
         data = xtrain,
@@ -281,6 +286,9 @@ gbm_fit <- function(prep_data,
         verbose = FALSE,
         nfold = folds)
     
+    # Save results in a list
+    # Use to select best model, based on chosen score
+    # (possibly allow changing loss function later?)
     cv.list[[i]] <- c('score' = min(cv.out$evaluation_log$test_poisson_nloglik_mean),
                       'eta' = as.numeric(tuning_grid[i,][1]),
                       'gamma' = as.numeric(tuning_grid[i,][2]),
@@ -292,8 +300,7 @@ gbm_fit <- function(prep_data,
   
   # Select best model from cv
   # either binary or poisson log loss
-  # NOTE: If regression, need to MAXIMIZE l2
-  
+  # or mse for regression
   best_model <- as.data.frame(do.call(rbind, lapply(cv.list, unlist)))
   best_model <- best_model[which.min(best_model$score),]
   

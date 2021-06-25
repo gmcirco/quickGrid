@@ -22,27 +22,39 @@ prep_data(
 
 \item{gridsize}{Size (in feet or meters) of the size of the spatial grid.}
 
-\item{measure}{Types of measures for the predictor variables (either distance, density, or both). Defaults to distance.}
+\item{measure}{Types of measures for the predictor variables (either distance, density, or both).
+Defaults to distance.}
 
-\item{kernel}{Named list of bandwidth distances if 'density' is chosen. Defaults to automatic selection via bw.ppl.}
+\item{kernel_bdw}{Either a numeric value or named list of bandwidth distances if 'density' is chosen. If a named list
+is provided, the names should match the named predictor variables in the \code{pred_var} object. If nothing is provided,
+defaults to automatic bandwidth selection via spatstat::bw.ppl.}
 }
 \value{
 model list
 }
 \description{
-Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list of predictor variables,
-and a study region and converts it into a grid-based model object. Users can select whether to calculate nearest grid-cell distances,
-densities, or both. Function returns a (non-spatial) dataframe and a spatial (\code{sf}) polygon grid. The function is intended
-to be used with the \code{xgboost} wrapper \code{gbm_fit}, but can also used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
+Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list
+of predictor variables, and a study region and converts it into a grid-based model object.
+Users can select whether to calculate nearest grid-cell distances,densities, or both. Function returns a
+(non-spatial) dataframe and a spatial (\code{sf}) polygon grid. The function is intended to be used with the \code{xgboost}
+wrapper \code{gbm_fit}, but can also used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
 }
 \examples{
 data("hartford_data")
 
-model_data <- 
-prep_data(outcome = hartford_data[['robbery']],
-          pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
-          region = hartford_data[['hartford']],
-          gridsize = 200,
-          measure = 'distance')
+# Prepping data for distance only
+model_data <- prep_data(outcome = hartford_data$robbery,
+                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+                       region = hartford_data$hartford,
+                       gridsize = 200,
+                       measure = 'distance')
+                       
+# Prepping data for density, with selected 1000 foot bandwidth
+model_data2 <- prep_data(outcome = hartford_data$robbery,
+                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+                       region = hartford_data$hartford,
+                       gridsize = 200,
+                       measure = 'density',
+                       kernel_bdw = 1000)
           
 }

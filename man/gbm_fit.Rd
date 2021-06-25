@@ -68,12 +68,12 @@ finding the model that minimizes the chosen loss function, then fitting using th
 
 data("hartford_data")
 
-model_data <- 
-prep_data(outcome = hartford_data[['robbery']],
-          pred_var = hartford_data[c("bar","liquor","gas","pharmacy","retail")],
-          region = hartford_data[['hartford']],
-          gridsize = 200,
-          measure = 'distance')
+# Prepping data for distance only
+model_data <- prep_data(outcome = hartford_data$robbery,
+                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
+                       region = hartford_data$hartford,
+                       gridsize = 200,
+                       measure = 'distance')
           
 fit1 <- gbm_fit(
   prep_data = model_data,
