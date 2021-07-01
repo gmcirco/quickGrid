@@ -27,7 +27,8 @@ Defaults to distance.}
 
 \item{kernel_bdw}{Either a numeric value or named list of bandwidth distances if 'density' is chosen. If a named list
 is provided, the names should match the named predictor variables in the \code{pred_var} object. If nothing is provided,
-defaults to automatic bandwidth selection via spatstat::bw.ppl.}
+defaults to automatic bandwidth selection via spatstat::bw.ppl. If speed is a concern, manually providing bandwidth
+values is substantially faster than the automatic selection feature.}
 }
 \value{
 model list

@@ -17,7 +17,8 @@
 #' Defaults to distance.
 #' @param kernel_bdw Either a numeric value or named list of bandwidth distances if 'density' is chosen. If a named list
 #' is provided, the names should match the named predictor variables in the `pred_var` object. If nothing is provided,
-#' defaults to automatic bandwidth selection via spatstat::bw.ppl.
+#' defaults to automatic bandwidth selection via spatstat::bw.ppl. If speed is a concern, manually providing bandwidth
+#' values is substantially faster than the automatic selection feature.
 #' 
 #' @return model list
 #' 
@@ -59,13 +60,25 @@ prep_data <- function(outcome,
                       measure = 'density',
                       kernel_bdw = 'auto') {
   
+  # Temporary global suppress warnings
+  # due to proj4 changes. See:
+  # https://stackoverflow.com/questions/63727886/
+  # proj4-to-proj6-upgrade-and-discarded-datum-warnings
+  oldw <- getOption("warn")
+  options(warn = -1)
+  
+  # Check if all features are sf
+  # Return error if not
+  .check_features(outcome)
+  .check_features(region)
+  lapply(pred_var, .check_features)
+  
   # Convert simple features to spatial
   sp_outcome <- as(outcome, "Spatial")
   
   # Designate Grid
   area_grid <- .make_grid(b = region, gridsize = gridsize)
 
-  
   # Distance Measures
   if (measure == "distance") {
     print("Calculating distances...")
@@ -140,8 +153,14 @@ prep_data <- function(outcome,
     replace_na(list(n = 0)) %>%
     dplyr::filter(grid_id %in% area_grid_sf$grid_id)
   
+  # Export data as list containing model data
+  # and the spatial grid it was calculated on
+  # required for the gbm_fit step
   return(list('gbm_dataframe' = model_data,
               'area_grid' = area_grid_sf))
+  
+  # Revert old warning default
+  options(warn = oldw)
 }
 
 
@@ -161,18 +180,18 @@ prep_data <- function(outcome,
   b <- as(b, "Spatial")
   
   # Convert region to raster layer
-  # Mask region for mapping
   base_raster <- raster(ext = extent(b), res = gridsize)
+  
+  # Assign projection of feature
   projection(base_raster) <- crs(b)
   
+  # Mask raster to the base grid
   # Suppress annoying errors
   # This is due to garbage collection - not a real error
   # only solution at the moment
-  {
-    options(show.error.messages = FALSE)
-    mask_raster <- rasterize(b, base_raster, getCover = TRUE) 
-    options(show.error.messages = TRUE)
-  }
+  options(show.error.messages = FALSE)
+  mask_raster <- rasterize(b, base_raster, getCover = TRUE) 
+  options(show.error.messages = TRUE)
   
   return(mask_raster)
 }
@@ -189,6 +208,7 @@ prep_data <- function(outcome,
   # zeroes = NA values
   count_raster <- rasterize(x = sp_point, y = area_grid,fun='count')
   
+  # Export data as dataframe
   vdata <- as.data.frame(count_raster,long=TRUE)$value	
   
   return(vdata[1:length(area_grid)])
@@ -285,4 +305,12 @@ prep_data <- function(outcome,
     return(kde_list)
   }
 
+# .CHECK_FEATURES
+# Check is a given variable is a simple feature
+# Return appropriate error if so
+# (In future, automatically convert to SF?)
+.check_features <- function(x){
+  if(is(x, "sf") != TRUE)
+    stop("All input features must be of class 'sf'")
+}
 

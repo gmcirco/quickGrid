@@ -36,7 +36,7 @@ plot_ale <- function(model_list, feature, grid_size = 30){
   }
   
   mod <- Predictor$new(model, data = newdata, predict.function = pred)
-  eff <- FeatureEffect$new(mod, feature = feature, grid.size = 30, method = "ale")
+  eff <- FeatureEffect$new(mod, feature = feature, grid.size = grid_size, method = "ale")
   
   ggplot(eff$results) +
     geom_line(aes_string(x = feature, y = '.value'), color = "darkblue", size = 1) +
