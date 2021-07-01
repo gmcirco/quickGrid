@@ -4,16 +4,10 @@
 \alias{outcome_eval}
 \title{Evaluate predictions from a gbm_fit model}
 \usage{
-outcome_eval(
-  model_fit,
-  test_data,
-  eval = "pai",
-  cutoff = 0.01,
-  verbose = FALSE
-)
+outcome_eval(model_fit, test_data, eval = "pai", cutoff = 0.01)
 }
 \arguments{
-\item{verbose}{}
+\item{cutoff}{}
 }
 \description{
 Evaluate predictions from a fitted gbm_fit model. Provides a variety of functions to estimate the out-of-sample
