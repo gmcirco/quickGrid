@@ -3,6 +3,7 @@
 export(gbm_fit)
 export(outcome_eval)
 export(plot_ale)
+export(plot_eval)
 export(plot_gbm)
 export(prep_data)
 import(ggplot2)

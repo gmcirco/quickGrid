@@ -9,20 +9,21 @@
 #' `gbm_fit` function and a set of out-of-sample observations as 'test' data. These out-of-sample values should be
 #' crimes or observations that were not used in the fitting the model.
 #'
-#' @param model_fit
-#' @param test_data
-#' @param eval
-#' @param cutoff
+#' @param model_fit Fitted model object from the `gbm_fit`
+#' @param test_data Out-of-sample observations to be used as evaluation data
+#' @param eval Type of evaluation to be performed. Should be one of: 'pai', 'pei', 'rri'. Defaults to 'pai'.
+#' @param cutoff Cutoff value to determine a hotspot, in proportion of the area. Defaults to 0.01, which is the top 1%
+#' of predicted locations.
 #'
 #'
 #'@export
-#'
 
 outcome_eval <-
   function(model_fit,
            test_data,
            eval = "pai",
            cutoff = 0.01) {
+    
     # Get model data from model fit
     # Needs to have the prediction column gbm.pred
     model_dataframe <- model_fit$model_dataframe
@@ -43,7 +44,7 @@ outcome_eval <-
     max_a <- round(nrow(model_dataframe) * cutoff)
     
     
-    # Initalize list to hold results
+    # Initialize list to hold results
     eval_list <- list()
     
     # Run PAI
@@ -58,7 +59,7 @@ outcome_eval <-
     if (any(eval %in% 'rri'))
       eval_list[[3]] <- .rri(a, n, n_sum, test_data, cutoff)
     
-    # Filter output
+    # Filter empty sections in list
     eval_list <- unlist(eval_list[lengths(eval_list) != 0])
     
     return(eval_list)
