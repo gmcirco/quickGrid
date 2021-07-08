@@ -7,7 +7,14 @@
 outcome_eval(model_fit, test_data, eval = "pai", cutoff = 0.01)
 }
 \arguments{
-\item{cutoff}{}
+\item{model_fit}{Fitted model object from the \code{gbm_fit}}
+
+\item{test_data}{Out-of-sample observations to be used as evaluation data}
+
+\item{eval}{Type of evaluation to be performed. Should be one of: 'pai', 'pei', 'rri'. Defaults to 'pai'.}
+
+\item{cutoff}{Cutoff value to determine a hotspot, in proportion of the area. Defaults to 0.01, which is the top 1\%
+of predicted locations.}
 }
 \description{
 Evaluate predictions from a fitted gbm_fit model. Provides a variety of functions to estimate the out-of-sample

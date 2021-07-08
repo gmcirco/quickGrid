@@ -81,7 +81,7 @@ prep_data <- function(outcome,
 
   # Distance Measures
   if (measure == "distance") {
-    print("Calculating distances...")
+    cat("Calculating distances...\n")
   
     distance_list <-
       lapply(pred_var, .nearest_feature, area_grid = area_grid)
@@ -93,7 +93,7 @@ prep_data <- function(outcome,
   
   # Density Measures
   if (measure == "density") {
-    print("Calculating densities...")
+    cat("Calculating densities...\n")
     
     # If kernel_bdw is a list, 
     # go to kernel_density list function
@@ -111,7 +111,7 @@ prep_data <- function(outcome,
   
   # Both
   if (measure == "both") {
-    print("Calculating distance & density...")
+    cat("Calculating distance & density...\n")
     
     distance_list <-
       lapply(pred_var, .nearest_feature, area_grid = area_grid)

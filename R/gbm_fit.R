@@ -108,20 +108,20 @@ gbm_fit <- function(prep_data,
   # otherwise, assign regression
   
   if(is.null(model_params) == FALSE){
-    print("Using custom parameters")
+    cat("Using custom parameters\n")
   } else if(all(unique(y) %in% c(0,1)) & is.null(model_params)){
     
-    print("Model type: binary")
+    cat("Model type: binary\n")
     objective <- "binary:logistic"
     eval_metric <- "logloss"
     
   } else if(all(y%%1 == 0) & is.null(model_params)){
-    print("Model type: Poisson")
+    cat("Model type: Poisson\n")
     objective <- "count:poisson"
     eval_metric <- 'poisson-nloglik'
     
   } else {
-    print("Model type: regression")
+    cat("Model type: regression\n")
     objective <- "reg:squarederror"
     eval_metric <- "rmse"
   }
@@ -142,7 +142,7 @@ gbm_fit <- function(prep_data,
   # or default\user-specified options
   
   if(cv == TRUE){
-    print("Fitting lgbm model via cross validation...")
+    cat("Fitting lgbm model via cross validation...\n")
     gbm.fit <- .gbm_fit_cv(xtrain = xtrain, 
                            folds = cv.folds,
                            eta = cv.eta,
@@ -156,7 +156,7 @@ gbm_fit <- function(prep_data,
     
   }
   else{
-    print("Fitting gbm model...")
+    cat("Fitting gbm model...\n")
 
       gbm.fit <- 
         xgb.train(
