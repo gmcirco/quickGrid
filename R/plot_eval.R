@@ -31,7 +31,7 @@ plot_eval <- function(model_fit,
     j <- j + 1
     alist[[j]] <- outcome_eval(
       model_fit = fit1,
-      test_data = robbery_test,
+      test_data = test_data,
       eval = eval,
       cutoff = i
     )
