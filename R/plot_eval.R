@@ -30,7 +30,7 @@ plot_eval <- function(model_fit,
   for (i in  eval_range) {
     j <- j + 1
     alist[[j]] <- outcome_eval(
-      model_fit = fit1,
+      model_fit = model_fit,
       test_data = test_data,
       eval = eval,
       cutoff = i
