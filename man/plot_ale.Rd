@@ -4,7 +4,7 @@
 \alias{plot_ale}
 \title{Plot accumulated local effects}
 \usage{
-plot_ale(model_list, feature, grid_size = 30)
+plot_ale(model_list, feature, grid_size = 100, max_dist = 1000)
 }
 \arguments{
 \item{model_list}{Model list output from the \code{gbm_fit} function}
@@ -14,9 +14,10 @@ plot_ale(model_list, feature, grid_size = 30)
 \item{grid_size}{Number of points to evaluate the predictor against}
 }
 \description{
-Uses \code{iml} package to plot accumulated local effects of predictor variables. Accumulated local effects (ALE) describe
-how a feature influences the model predictions on average. In general, ALE estimates
-are faster and more robust alternative to partial dependence plots. For example, one might interested in how the effect
-of distance to a liquor store influence robberies. An ALE can determine the range of distances at which this predictor
-has a substantial criminogenic effect. This can also be used with density or grid count measures as well.
+Uses \code{iml} package to plot accumulated local effects of predictor variables. Accumulated local effects (ALE)
+describe how a feature influences the model predictions on average. In general, ALE estimates
+are faster and more robust alternative to partial dependence plots. For example, one might interested in
+how the effect of distance to a liquor store influence robberies.
+An ALE can determine the range of distances at which this predictor has a substantial criminogenic effect.
+This can also be used with density or grid count measures as well.
 }

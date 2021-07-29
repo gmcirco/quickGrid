@@ -3,13 +3,13 @@
 #----------------------------------------------------#
 #' Plot accumulated local effects
 #' 
-#' Uses `iml` package to plot accumulated local effects of predictor variables. Accumulated local effects (ALE) describe
-#' how a feature influences the model predictions on average. In general, ALE estimates
-#' are faster and more robust alternative to partial dependence plots. For example, one might interested in how the effect 
-#' of distance to a liquor store influence robberies. An ALE can determine the range of distances at which this predictor
-#' has a substantial criminogenic effect. This can also be used with density or grid count measures as well.
+#' Uses `iml` package to plot accumulated local effects of predictor variables. Accumulated local effects (ALE) 
+#' describe how a feature influences the model predictions on average. In general, ALE estimates
+#' are faster and more robust alternative to partial dependence plots. For example, one might interested in 
+#' how the effect of distance to a liquor store influence robberies. 
+#' An ALE can determine the range of distances at which this predictor has a substantial criminogenic effect. 
+#' This can also be used with density or grid count measures as well.
 #'
-#' 
 #' @param model_list Model list output from the `gbm_fit` function
 #' @param feature Predictor feature to be plotted
 #' @param grid_size Number of points to evaluate the predictor against
@@ -18,7 +18,7 @@
 #' 
 #' @export
 
-plot_ale <- function(model_list, feature, grid_size = 30){
+plot_ale <- function(model_list, feature, grid_size = 100, max_dist = 1000){
   
   model = model_list[[2]]
   newdata = model_list[[1]]
@@ -41,6 +41,7 @@ plot_ale <- function(model_list, feature, grid_size = 30){
   ggplot(eff$results) +
     geom_line(aes_string(x = feature, y = '.value'), color = "darkblue", size = 1) +
     labs(y = "ALE",title = paste0("Accumulated Local Effect on ", feature)) +
+    scale_x_continuous(limits = c(0, max_dist)) +
     theme_bw() +
     theme(axis.text = element_text(size = 12),
           axis.title = element_text(size = 12))

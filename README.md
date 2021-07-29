@@ -21,7 +21,7 @@ and Steenbeck
 This package is still in its infancy (as of 2021-06-14). A number of
 features are planned for the future, including:
 
--   Predictive Accuracy Index (PAI) calculation
+-   ~~Predictive Accuracy Index (PAI) calculation~~
 -   GoogleMaps & OpenStreet Maps integration
 -   Grid count and polygon-level predictors
 -   Shapely value decomposition
@@ -70,12 +70,18 @@ models using the parameters listed
 This is a minimum working example using the data provided in the
 `quickGrid` package. `quickGrid` is packaged with an example dataset
 containing robberies in Hartford CT for 2017 though 2019. A number of
-spatial predictors are packed in as well, including the locations of
+spatial predictors are included as well, including the locations of
 bars, night clubs, liquor stores, gas stations, pharmacies, and
-restaurants. For simplicity, these are packaged as a list of `sf`
+restaurants. For simplicity, these are packaged as a list of named `sf`
 objects that can be easily plugged into our model prep function.
 
 ### Setting up your data
+
+Because we are interested in *future* predictions, we should first split
+our data into a [test and train
+dataset](https://developers.google.com/machine-learning/crash-course/training-and-test-sets/splitting-data).
+Here, we will use 2017 - 2018 data for training, and 2019 for evaluating
+our predictions.
 
 ``` r
 library(quickGrid)
@@ -87,16 +93,25 @@ data("hartford_data")
 names(hartford_data)
 #> [1] "hartford"   "robbery"    "bar"        "nightclub"  "liquor"    
 #> [6] "gas"        "pharmacy"   "restaurant"
- 
+
+# Split data into test-train
+robbery_train <- dplyr::filter(hartford_data[[2]], substr(date,1,4) %in% 2017:2018)
+robbery_test <- dplyr::filter(hartford_data[[2]], substr(date,1,4) == 2019)
+```
+
+Now we can train our model on the 2017 and 2018 robberies, using the
+predictor variables and measuring by nearest distance.
+
+``` r
 # Create an object to hold model data
 # using 'prep_data' function
 
-model_data <- prep_data(outcome = hartford_data$robbery,
+model_data <- prep_data(outcome = robbery_train,
                        pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
                        region = hartford_data$hartford,
                        gridsize = 200,
                        measure = 'distance')
-#> [1] "Calculating distances..."
+#> Calculating distances...
 ```
 
 This will give us a list of two objects: a model dataframe with the
@@ -159,11 +174,11 @@ gbm_fit <- gbm_fit(
   nrounds = 1000,
   plot_importance = TRUE
 )
-#> [1] "Model type: Poisson"
-#> [1] "Fitting gbm model..."
+#> Model type: Poisson
+#> Fitting gbm model...
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="500px" />
 
 We can directly access the model predictions as well, by examining the
 model dataframe in the `gbm_fit` output file. In this case `gbm.pred` is
@@ -193,12 +208,12 @@ head(gbm_fit$model_dataframe)
 #> 22        1986.044     2339.894          3511.932            1802.244
 #> 23        1796.853     2174.627          3418.562            1612.213
 #>       gbm.pred                       geometry
-#> 18 0.001900735 POLYGON ((1012120 854990.8,...
-#> 19 0.003929342 POLYGON ((1012320 854990.8,...
-#> 20 0.001821776 POLYGON ((1012520 854990.8,...
-#> 21 0.003597398 POLYGON ((1012720 854990.8,...
-#> 22 0.012617457 POLYGON ((1012920 854990.8,...
-#> 23 0.007686861 POLYGON ((1013120 854990.8,...
+#> 18 0.009015617 POLYGON ((1012120 854990.8,...
+#> 19 0.003779165 POLYGON ((1012320 854990.8,...
+#> 20 0.021006990 POLYGON ((1012520 854990.8,...
+#> 21 0.009862104 POLYGON ((1012720 854990.8,...
+#> 22 0.007123667 POLYGON ((1012920 854990.8,...
+#> 23 0.002528116 POLYGON ((1013120 854990.8,...
 ```
 
 ## Plotting Functions
@@ -223,7 +238,7 @@ function.
 plot_gbm(gbm_fit)
 ```
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-6-1.png" width="500px" />
 
 In addition, you can also examine the value of one or more of your model
 predictors. If you want to see the grid values for your ‘distance’
@@ -236,7 +251,7 @@ or density values by simply added `feature = 'distance'`.
 plot_gbm(gbm_fit, feature = 'distance')
 ```
 
-<img src="man/figures/README-unnamed-chunk-6-1.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-7-1.png" width="500px" />
 
 ### plot\_ale
 
@@ -252,7 +267,7 @@ increases.
 plot_ale(gbm_fit, 'distance.liquor')
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="500px" />
+<img src="man/figures/README-unnamed-chunk-8-1.png" width="500px" />
 
 ### Fitting your model with cross-validation
 
@@ -283,3 +298,51 @@ gbm_fit_cv <- gbm_fit(prep_data = model_data,
                      cv.subsample = c(.75,.5),
                      cv.nrounds = c(500,1000))
 ```
+
+## Evaluating Model Performace
+
+There are three possible options for evaluating the [accuracy of
+predictions](https://link.springer.com/article/10.1007/s10940-020-09457-7#Sec14)
+from your model:
+
+1.  The *predictive accuracy index* (PAI), which is the simply the
+    proportion of crimes predicted divided by the number of hotspots
+2.  The *predictive efficiency index* (PEI), which is the ratio of the
+    observed PAI to the (hypothetical) best possible PAI. Values closer
+    to one imply more accurate models.
+3.  The *recapture rate index* (RRI), which measures the relative
+    accuracy of hot spots. This is the ratio of the number of crimes
+    predicted by the model to the number of observed crimes. Values
+    above one imply more crimes are predicted than observed, while
+    values below one imply fewer crimes are predicted than observed.
+
+### `outcome_eval`
+
+The `outcome_eval` function allows the calculation of one or more of the
+above metrics. You can specify one or a list of two or more. The default
+cutoff for a hotspot is the top 1% of regions (`cutoff = 0.01`).
+
+``` r
+# Plot model performance on test data
+# PAI, PEI, RRI
+outcome_eval(model_fit = gbm_fit, 
+             test_data = robbery_test,
+             eval = c("pai","pei","rri"))
+#>   PAI   PEI   RRI 
+#> 18.73  0.31  6.10
+```
+
+### `plot_eval`
+
+There is also the option to plot evaluations across a range of hotspot
+values. This helps to identify the performace of the model conditional
+on different hot spot cutoffs. The `plot_eval` function can plot any of
+the three metrics across any range of values. The default is 0.1% to 1%.
+
+``` r
+plot_eval(model_fit = gbm_fit, 
+             test_data = robbery_test,
+             eval = "pai")
+```
+
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="500px" />
