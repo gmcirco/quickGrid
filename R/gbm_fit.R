@@ -65,22 +65,24 @@
 #   Takes either manual input, or fits parameters using cross-validation
 
 gbm_fit <- function(prep_data,
-                     model_params = NULL,
-                     eta = 0.3,
-                     gamma = 2,
-                     max_depth = 6,
-                     min_child_weight = 1,
-                     subsample = .5,
-                     nrounds = 1000,
-                     plot_importance = TRUE,
-                     cv = FALSE,
-                     cv.folds = 5,
-                     cv.eta = c(0.3,0.1),
-                     cv.gamma = c(1),
-                     cv.maxdepth = c(6,12,20),
-                     cv.min_child_weight = c(1),
-                     cv.subsample = c(.75,.5),
-                     cv.nrounds = c(500,1000)) {
+                    model_params = NULL,
+                    eta = 0.3,
+                    gamma = 2,
+                    max_depth = 6,
+                    min_child_weight = 1,
+                    subsample = .5,
+                    nrounds = 1000,
+                    plot_importance = TRUE,
+                    cv = FALSE,
+                    cv.random = TRUE,
+                    cv.random.iters = 3,
+                    cv.folds = 5,
+                    cv.eta = c(0.3,0.1),
+                    cv.gamma = c(1),
+                    cv.maxdepth = c(6,12,20),
+                    cv.min_child_weight = c(1),
+                    cv.subsample = c(.75,.5),
+                    cv.nrounds = c(500,1000)) {
   
   # Get model dataframe 
   
@@ -142,9 +144,15 @@ gbm_fit <- function(prep_data,
   # or default\user-specified options
   
   if(cv == TRUE){
-    cat("Fitting lgbm model via cross validation...\n")
+    cat("Fitting XGBoost model via cross validation...\n")
+    
+    if(cv.random == TRUE)
+    cat("Using random grid search\n")
+
     gbm.fit <- .gbm_fit_cv(xtrain = xtrain, 
                            folds = cv.folds,
+                           cv.random = cv.random,
+                           cv.random.iters = cv.random.iters,
                            eta = cv.eta,
                            gamma = cv.gamma,
                            maxdepth = cv.maxdepth,
@@ -157,13 +165,13 @@ gbm_fit <- function(prep_data,
   }
   else{
     cat("Fitting gbm model...\n")
-
-      gbm.fit <- 
-        xgb.train(
-          param,
-          xtrain,
-          nrounds = nrounds)
-
+    
+    gbm.fit <- 
+      xgb.train(
+        param,
+        xtrain,
+        nrounds = nrounds)
+    
   }
   
   # Get predictions
@@ -218,8 +226,8 @@ gbm_fit <- function(prep_data,
   plot(
     ggplot2::ggplot(x) +
       ggplot2::geom_col(ggplot2::aes(x = Gain, 
-                   y = fct_reorder(Feature, Gain)), 
-               fill = "Darkblue") +
+                                     y = fct_reorder(Feature, Gain)), 
+                        fill = "Darkblue") +
       ggplot2::theme_minimal() +
       ggplot2::theme(
         axis.text = element_text(size = fontsize),
@@ -235,6 +243,8 @@ gbm_fit <- function(prep_data,
 
 .gbm_fit_cv <- function(xtrain, 
                         folds,
+                        cv.random,
+                        cv.random.iters,
                         eta,
                         gamma,
                         maxdepth,
@@ -245,7 +255,6 @@ gbm_fit <- function(prep_data,
                         eval_metric){
   
   # Set up tuning grid
-  
   tuning_grid <- expand.grid(
     eta = eta,
     gamma = gamma,
@@ -254,6 +263,13 @@ gbm_fit <- function(prep_data,
     subsample = subsample,
     nrounds = nrounds
   )
+  
+  # if random search selected, select subset of grid
+  if(cv.random == TRUE)
+  cat(paste0("\n","Grid size: ", nrow(tuning_grid),"\n"))
+  cat(paste0("Proportion of grid sampled: ", round(cv.random.iters/nrow(tuning_grid),3),"\n" ))
+  
+  tuning_grid <- tuning_grid[sample(nrow(tuning_grid), cv.random.iters),]
   
   # Set up tuning grid
   
@@ -321,6 +337,7 @@ gbm_fit <- function(prep_data,
       xtrain,
       nrounds = as.numeric(best_model['nrounds']) )
   
+  cat("Best model:","\n")
   print(best_model)
   return(gbm.fit.cv)
 }
