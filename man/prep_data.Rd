@@ -11,7 +11,7 @@ prep_data(
   gridsize,
   measure = "density",
   kernel_bdw = "auto",
-  count_vars
+  count_vars = NULL
 )
 }
 \arguments{
@@ -30,6 +30,8 @@ Defaults to distance.}
 is provided, the names should match the named predictor variables in the \code{pred_var} object. If nothing is provided,
 defaults to automatic bandwidth selection via spatstat::bw.ppl. If speed is a concern, manually providing bandwidth
 values is substantially faster than the automatic selection feature.}
+
+\item{count_vars}{Vector of names of variables in \code{pred_var} to be counted. Default is all variables.}
 }
 \value{
 model list
@@ -51,12 +53,5 @@ model_data <- prep_data(outcome = hartford_data$robbery,
                        gridsize = 200,
                        measure = 'distance')
                        
-# Prepping data for density, with selected 1000 foot bandwidth
-model_data2 <- prep_data(outcome = hartford_data$robbery,
-                       pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
-                       region = hartford_data$hartford,
-                       gridsize = 200,
-                       measure = 'density',
-                       kernel_bdw = 1000)
           
 }

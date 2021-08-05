@@ -52,7 +52,7 @@ prep_data <- function(outcome,
                       gridsize,
                       measure = 'density',
                       kernel_bdw = 'auto',
-                      count_vars) {
+                      count_vars = NULL) {
   
   # Temporary global suppress warnings
   # due to proj4 changes. See:
@@ -70,20 +70,26 @@ prep_data <- function(outcome,
   # Designate Grid
   area_grid <- .make_grid(b = region, gridsize = gridsize)
 
+  # initialize values for predictors and list to hold measures
+  pred_list <- list()
+  dist_values <- data.frame()
+  dens_values <- data.frame()
+  count_values <- data.frame()
+  
   # Distance Measures
-  if (measure == "distance") {
+  if (any(measure %in% "distance")) {
     cat("Calculating distances...\n")
   
     distance_list <-
       lapply(pred_var, .nearest_feature, area_grid = area_grid)
     
-    pred_values <-
+    dist_values <-
       do.call(cbind.data.frame, distance_list) %>%
       setNames(paste0('distance.', names(.)))
   }
   
   # Density Measures
-  if (measure == "density") {
+  if (any(measure %in% "density")) {
     cat("Calculating densities...\n")
     
     # If kernel_bdw is a list, 
@@ -95,39 +101,12 @@ prep_data <- function(outcome,
         lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
     }
   
-    pred_values <-
+    dens_values <-
       do.call(cbind.data.frame, density_list) %>%
       setNames(paste0('density.', names(.)))
   }
   
-  # Both
-  if (measure == "both") {
-    cat("Calculating distance & density...\n")
-    
-    distance_list <-
-      lapply(pred_var, .nearest_feature, area_grid = area_grid)
-    
-    dist <-
-      do.call(cbind.data.frame, distance_list) %>%
-      setNames(paste0('distance.', names(.)))
-    
-    # If kernel_bdw is a list, 
-    # go to kernel_density list function
-    if(is.list(kernel_bdw)){
-      density_list <- .kernel_density_list(pred_vars = pred_var, area_grid = area_grid, bdw_opt = kernel_bdw)
-    } else {
-      density_list <-
-        lapply(pred_var, .kernel_density, area_grid = area_grid, bdw_opt = kernel_bdw)
-    }
-    
-    dens <-
-      do.call(cbind.data.frame, density_list) %>%
-      setNames(paste0('density.', names(.)))
-    
-    pred_values <- cbind.data.frame(dist,dens)
-  }
-  
-  if(measure == "count"){
+  if(any(measure %in% "count")) {
     cat("Calculating grid counts...\n")
     
     # filter count variables if provided
@@ -142,11 +121,21 @@ prep_data <- function(outcome,
     count_list <-
       lapply(pred_var, .grid_count, area_grid = area_grid)
     
-    pred_values <-
+    count_values <-
       do.call(cbind.data.frame, count_list) %>%
       setNames(paste0('count.', names(.)))
   }
   
+  # get one or more predictor dataframes
+  pred_list[[1]] <- dist_values
+  pred_list[[2]] <- dens_values
+  pred_list[[3]] <- count_values
+  
+  # kill any empty values
+  pred_list[sapply(pred_list, function(x){nrow(x) == 0})] <- NULL
+
+  # bind into single dataframe
+  pred_values <- do.call(cbind.data.frame, pred_list)
   
   # Convert raster grid to sf
   area_grid_sf <- stars::st_as_stars(area_grid)
