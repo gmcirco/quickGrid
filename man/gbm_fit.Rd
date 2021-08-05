@@ -15,7 +15,7 @@ gbm_fit(
   nrounds = 1000,
   plot_importance = TRUE,
   cv = FALSE,
-  cv.random = TRUE,
+  cv.random = FALSE,
   cv.random.iters = 3,
   cv.folds = 5,
   cv.eta = c(0.3, 0.1),

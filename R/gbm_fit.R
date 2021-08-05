@@ -74,7 +74,7 @@ gbm_fit <- function(prep_data,
                     nrounds = 1000,
                     plot_importance = TRUE,
                     cv = FALSE,
-                    cv.random = TRUE,
+                    cv.random = FALSE,
                     cv.random.iters = 3,
                     cv.folds = 5,
                     cv.eta = c(0.3,0.1),
@@ -265,11 +265,12 @@ gbm_fit <- function(prep_data,
   )
   
   # if random search selected, select subset of grid
-  if(cv.random == TRUE)
+  if(cv.random == TRUE){
   cat(paste0("\n","Grid size: ", nrow(tuning_grid),"\n"))
   cat(paste0("Proportion of grid sampled: ", round(cv.random.iters/nrow(tuning_grid),3),"\n" ))
-  
   tuning_grid <- tuning_grid[sample(nrow(tuning_grid), cv.random.iters),]
+  }
+  
   
   # Set up tuning grid
   

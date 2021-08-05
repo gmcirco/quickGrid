@@ -19,6 +19,7 @@
 #' is provided, the names should match the named predictor variables in the `pred_var` object. If nothing is provided,
 #' defaults to automatic bandwidth selection via spatstat::bw.ppl. If speed is a concern, manually providing bandwidth
 #' values is substantially faster than the automatic selection feature.
+#' @param count_vars Vector of names of variables in `pred_var` to be counted. Default is all variables.
 #' 
 #' @return model list
 #' 
@@ -31,7 +32,6 @@
 #' @importFrom sf st_as_sf
 #' @importFrom dplyr mutate
 #' @importFrom dplyr filter
-#' @importFrom tidyr replace_na
 #' 
 #' @examples
 #' data("hartford_data")
@@ -43,13 +43,6 @@
 #'                        gridsize = 200,
 #'                        measure = 'distance')
 #'                        
-#'# Prepping data for density, with selected 1000 foot bandwidth
-#' model_data2 <- prep_data(outcome = hartford_data$robbery,
-#'                        pred_var = hartford_data[c('bar','nightclub','liquor','gas','pharmacy','restaurant')],
-#'                        region = hartford_data$hartford,
-#'                        gridsize = 200,
-#'                        measure = 'density',
-#'                        kernel_bdw = 1000)
 #'           
 #'@export
 
@@ -58,7 +51,8 @@ prep_data <- function(outcome,
                       region,
                       gridsize,
                       measure = 'density',
-                      kernel_bdw = 'auto') {
+                      kernel_bdw = 'auto',
+                      count_vars) {
   
   # Temporary global suppress warnings
   # due to proj4 changes. See:
@@ -72,9 +66,6 @@ prep_data <- function(outcome,
   .check_features(outcome)
   .check_features(region)
   lapply(pred_var, .check_features)
-  
-  # Convert simple features to spatial
-  sp_outcome <- as(outcome, "Spatial")
   
   # Designate Grid
   area_grid <- .make_grid(b = region, gridsize = gridsize)
@@ -136,6 +127,27 @@ prep_data <- function(outcome,
     pred_values <- cbind.data.frame(dist,dens)
   }
   
+  if(measure == "count"){
+    cat("Calculating grid counts...\n")
+    
+    # filter count variables if provided
+    # otherwise, use all pred vars
+    if(is.null(count_vars) != TRUE){
+      cat("Counting following variables:\n")
+      cat(count_vars)
+      
+      pred_var <- pred_var[count_vars]
+    }
+    
+    count_list <-
+      lapply(pred_var, .grid_count, area_grid = area_grid)
+    
+    pred_values <-
+      do.call(cbind.data.frame, count_list) %>%
+      setNames(paste0('count.', names(.)))
+  }
+  
+  
   # Convert raster grid to sf
   area_grid_sf <- stars::st_as_stars(area_grid)
   area_grid_sf <- st_as_sf(area_grid_sf, as_points = FALSE, crs)
@@ -150,7 +162,6 @@ prep_data <- function(outcome,
                      n = .grid_count(outcome, area_grid = area_grid),
                      pred_values) %>%
     mutate(grid_id = 1:nrow(.)) %>%
-    replace_na(list(n = 0)) %>%
     dplyr::filter(grid_id %in% area_grid_sf$grid_id)
   
   # Export data as list containing model data
@@ -208,8 +219,9 @@ prep_data <- function(outcome,
   # zeroes = NA values
   count_raster <- rasterize(x = sp_point, y = area_grid,fun='count')
   
-  # Export data as dataframe
+  # Export data as vector
   vdata <- as.data.frame(count_raster,long=TRUE)$value	
+  vdata[is.na(vdata) == TRUE] <- 0
   
   return(vdata[1:length(area_grid)])
 }

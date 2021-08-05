@@ -10,7 +10,8 @@ prep_data(
   region,
   gridsize,
   measure = "density",
-  kernel_bdw = "auto"
+  kernel_bdw = "auto",
+  count_vars
 )
 }
 \arguments{

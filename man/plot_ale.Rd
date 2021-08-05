@@ -9,7 +9,8 @@ plot_ale(model_list, feature, grid_size = 100, max_dist = 1000)
 \arguments{
 \item{model_list}{Model list output from the \code{gbm_fit} function}
 
-\item{feature}{Predictor feature to be plotted}
+\item{feature}{Predictor feature or features to be plotted. Specifying one feature will result in an ALE plot, while
+specifying two features will create an interaction plot, showing the crossed effect of both features in a grid.}
 
 \item{grid_size}{Number of points to evaluate the predictor against}
 }
