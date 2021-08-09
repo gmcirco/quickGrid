@@ -29,7 +29,7 @@ plot_ale <- function(model_list, feature, grid_size = 100, max_dist = 1000){
   newdata = model_list[[1]]
   
   newdata <- data.frame(newdata)
-  newdata <- dplyr::select(newdata, x, y, dplyr::starts_with(c("distance.", "density.")))
+  newdata <- dplyr::select(newdata, x, y, dplyr::starts_with(c("distance.", "density.","count.")))
   
   # filter distance
   if(grepl("distance.", feature) == TRUE){
