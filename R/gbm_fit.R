@@ -288,7 +288,13 @@ gbm_fit <- function(prep_data,
         eval_metric = eval_metric)
     
     # Print status of cv
-    print(unlist(param))
+    cat(paste0("[",i,"]",
+               " eta: ", param['eta'],
+               " gamma: ", param['gamma'],
+               " max_depth: ", param['max_depth'],
+               " subsample: ", param['subsample'],
+               " nrounds: ", tuning_grid[i,][6],
+               "\n"))
     
     # Fit cross-validated model
     # Using parameters from tuning grid
@@ -299,14 +305,14 @@ gbm_fit <- function(prep_data,
         data = xtrain,
         params = param,
         nrounds = as.numeric(tuning_grid[i,][6]),
-        early_stopping_rounds = .1*as.numeric(tuning_grid[i,][6]),
+        early_stopping_rounds = .05*as.numeric(tuning_grid[i,][6]),
         verbose = FALSE,
         nfold = folds)
     
     # Save results in a list
     # Use to select best model, based on chosen score
     # (possibly allow changing loss function later?)
-    cv.list[[i]] <- c('score' = min(cv.out$evaluation_log$test_poisson_nloglik_mean),
+    cv.list[[i]] <- c('score' = min(cv.out$evaluation_log$test_poisson_nloglik_mean), # FIX THIS
                       'eta' = as.numeric(tuning_grid[i,][1]),
                       'gamma' = as.numeric(tuning_grid[i,][2]),
                       'max_depth' = as.numeric(tuning_grid[i,][3]),
