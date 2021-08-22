@@ -75,14 +75,14 @@ gbm_fit <- function(prep_data,
                     plot_importance = TRUE,
                     cv = FALSE,
                     cv.random = FALSE,
-                    cv.random.iters = 3,
+                    cv.random.iters = 5,
                     cv.folds = 5,
-                    cv.eta = c(0.3,0.1),
+                    cv.eta = c(0.2,0.1,0.05),
                     cv.gamma = c(1),
-                    cv.maxdepth = c(6,12,20),
+                    cv.maxdepth = c(4,8,12,16),
                     cv.min_child_weight = c(1),
-                    cv.subsample = c(.75,.5),
-                    cv.nrounds = c(500,1000)) {
+                    cv.subsample = c(.5,.6,.7,.8,.9),
+                    cv.nrounds = c(500,750,100)) {
   
   # Get model dataframe 
   
@@ -274,7 +274,7 @@ gbm_fit <- function(prep_data,
   
   # Set up tuning grid
   
-  cv.list <- list()
+  cv.list <- vector(mode = "list", length = nrow(tuning_grid))
   for(i in 1:nrow(tuning_grid)){
     
     param <-
@@ -292,13 +292,14 @@ gbm_fit <- function(prep_data,
                " eta: ", param['eta'],
                " gamma: ", param['gamma'],
                " max_depth: ", param['max_depth'],
+               " min_child_weight: ", param['min_child_weight'],
                " subsample: ", param['subsample'],
                " nrounds: ", tuning_grid[i,][6],
                "\n"))
     
     # Fit cross-validated model
     # Using parameters from tuning grid
-    # Set early stopping to 10% of total iterations
+    # Set early stopping to 5% of total iterations
     # (possibly allow changing in the future?)
     cv.out <-
       xgb.cv(
@@ -311,14 +312,14 @@ gbm_fit <- function(prep_data,
     
     # Save results in a list
     # Use to select best model, based on chosen score
-    # (possibly allow changing loss function later?)
+    # (possibly allow changing loss function later?
     cv.list[[i]] <- c('score' = min(cv.out$evaluation_log$test_poisson_nloglik_mean), # FIX THIS
                       'eta' = as.numeric(tuning_grid[i,][1]),
                       'gamma' = as.numeric(tuning_grid[i,][2]),
                       'max_depth' = as.numeric(tuning_grid[i,][3]),
                       'min_child_weight' = as.numeric(tuning_grid[i,][4]),
                       'subsample' = as.numeric(tuning_grid[i,][5]),
-                      'nrounds' = as.numeric(tuning_grid[i,][6]))
+                      'nrounds' = as.numeric(cv.out$best_iteration))
   }
   
   # Select best model from cv

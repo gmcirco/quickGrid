@@ -16,14 +16,14 @@ gbm_fit(
   plot_importance = TRUE,
   cv = FALSE,
   cv.random = FALSE,
-  cv.random.iters = 3,
+  cv.random.iters = 5,
   cv.folds = 5,
-  cv.eta = c(0.3, 0.1),
+  cv.eta = c(0.2, 0.1, 0.05),
   cv.gamma = c(1),
-  cv.maxdepth = c(6, 12, 20),
+  cv.maxdepth = c(4, 8, 12, 16),
   cv.min_child_weight = c(1),
-  cv.subsample = c(0.75, 0.5),
-  cv.nrounds = c(500, 1000)
+  cv.subsample = c(0.5, 0.6, 0.7, 0.8, 0.9),
+  cv.nrounds = c(500, 750, 100)
 )
 }
 \arguments{

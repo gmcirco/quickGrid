@@ -289,7 +289,7 @@ prep_data <- function(outcome,
       bdw_opt[order(factor(names(bdw_opt), levels = names(pred_vars)))]
     
     # Create empty list to hold results
-    kde_list <- list()
+    kde_list <- vector(mode = "list", length = length(pred_vars))
     
     # Iterate over all predictor variables
     for (i in 1:length(pred_vars)) {
