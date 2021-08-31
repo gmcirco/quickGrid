@@ -23,7 +23,7 @@ features are planned for the future, including:
 
 -   ~~Predictive Accuracy Index (PAI) calculation~~
 -   GoogleMaps & OpenStreet Maps integration
--   Grid count and polygon-level predictors
+-   ~~Grid count~~ and polygon-level predictors
 -   Shapely value decomposition
 -   and more…!
 
@@ -207,13 +207,13 @@ head(gbm_fit$model_dataframe)
 #> 21        2177.169     2510.220          3613.967            1994.225
 #> 22        1986.044     2339.894          3511.932            1802.244
 #> 23        1796.853     2174.627          3418.562            1612.213
-#>       gbm.pred                       geometry
-#> 18 0.009015617 POLYGON ((1012120 854990.8,...
-#> 19 0.003779165 POLYGON ((1012320 854990.8,...
-#> 20 0.021006990 POLYGON ((1012520 854990.8,...
-#> 21 0.009862104 POLYGON ((1012720 854990.8,...
-#> 22 0.007123667 POLYGON ((1012920 854990.8,...
-#> 23 0.002528116 POLYGON ((1013120 854990.8,...
+#>        gbm.pred                       geometry
+#> 18 0.0101637170 POLYGON ((1012120 854990.8,...
+#> 19 0.0073781023 POLYGON ((1012320 854990.8,...
+#> 20 0.0050794818 POLYGON ((1012520 854990.8,...
+#> 21 0.0005178818 POLYGON ((1012720 854990.8,...
+#> 22 0.0056917397 POLYGON ((1012920 854990.8,...
+#> 23 0.0024086121 POLYGON ((1013120 854990.8,...
 ```
 
 ## Plotting Functions
@@ -261,7 +261,8 @@ variable. For example, if we wanted to know the effect of liquor stores
 on robberies up to any distance, we can calculate it using the
 `plot_ale` function. Here it looks like the effect is highly localized,
 with the effect decaying rapidly as distance from a liquor store
-increases.
+increases. The maximum distance can be adjusted, but is only shown up to
+a reasonable 1,000 feet here.
 
 ``` r
 plot_ale(gbm_fit, 'distance.liquor')
@@ -315,6 +316,8 @@ from your model:
     predicted by the model to the number of observed crimes. Values
     above one imply more crimes are predicted than observed, while
     values below one imply fewer crimes are predicted than observed.
+    Note, this is only valid if the training period is roughly
+    equivalent to the testing period.
 
 ### `outcome_eval`
 
@@ -329,13 +332,13 @@ outcome_eval(model_fit = gbm_fit,
              test_data = robbery_test,
              eval = c("pai","pei","rri"))
 #>   PAI   PEI   RRI 
-#> 18.73  0.31  6.10
+#> 19.10  0.31  5.95
 ```
 
 ### `plot_eval`
 
 There is also the option to plot evaluations across a range of hotspot
-values. This helps to identify the performace of the model conditional
+values. This helps to identify the performance of the model conditional
 on different hot spot cutoffs. The `plot_eval` function can plot any of
 the three metrics across any range of values. The default is 0.1% to 1%.
 
