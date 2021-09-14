@@ -7,13 +7,17 @@
 #' effectiveness of a prediction model, including the predictive accuracy index (PAI), the predictive efficiency index
 #' (PEI), and the recapture rate index (RRI). At a minimum users must provide a fitted model object from the
 #' `gbm_fit` function and a set of out-of-sample observations as 'test' data. These out-of-sample values should be
-#' crimes or observations that were not used in the fitting the model.
+#' crimes or observations that were not used in the fitting the model. 
+#' 
+#' Supplying a value for the parameter `penal` allows models to consider the penalized predictive accuracy index (pPAI)
+#' as described in Joshi, Curtis-Ham, D'Ath, and Searle (2021).
 #'
 #' @param model_fit Fitted model object from the `gbm_fit`
 #' @param test_data Out-of-sample observations to be used as evaluation data
-#' @param eval Type of evaluation to be performed. Should be one of: 'pai', 'pei', 'rri'. Defaults to 'pai'.
+#' @param eval Type of evaluation to be performed. Should be one of: 'pai', 'ppai', 'pei', 'rri'. Defaults to 'pai'.
 #' @param cutoff Cutoff value to determine a hotspot, in proportion of the area. Defaults to 0.01, which is the top 1%
 #' of predicted locations.
+#' @param penal Penalization factor p where 0 ≤ p ≤ 1. Defaults to 1, which is equivalent to the PAI.
 #'
 #'
 #'@export
@@ -22,7 +26,8 @@ outcome_eval <-
   function(model_fit,
            test_data,
            eval = "pai",
-           cutoff = 0.01) {
+           cutoff = 0.01,
+           penal = 1) {
     
     # Get model data from model fit
     # Needs to have the prediction column gbm.pred
@@ -45,17 +50,15 @@ outcome_eval <-
     
     
     # Initialize list to hold results
+    # pai, pei,pai
     eval_list <- list()
     
-    # Run PAI
     if (any(eval %in% 'pai'))
-      eval_list[[1]] <- .pai(a, n, test_data, cutoff)
+      eval_list[[1]] <- .pai(a, n, test_data, cutoff, penal)
     
-    # Run PEI
     if (any(eval %in% 'pei'))
-      eval_list[[2]] <- .pei(a, max_a, n, test_data, model_dataframe, cutoff)
+      eval_list[[2]] <- .pei(a, max_a, n, test_data, model_dataframe, cutoff, penal)
     
-    # Run RRI
     if (any(eval %in% 'rri'))
       eval_list[[3]] <- .rri(a, n, n_sum, test_data, cutoff)
     
@@ -76,10 +79,14 @@ outcome_eval <-
   function(a = a,
            n = n,
            test_data = test_data,
-           cutoff = cutoff) {
+           cutoff = cutoff,
+           penal = penal) {
+    
+    if(penal < 0 | penal > 1)
+      stop("Penal must lie between 0 and 1")
     
     # Calculate PAI
-    out <- c("PAI" = round((n / nrow(test_data)) / cutoff, 2))
+    out <- c("PAI" = round((n / nrow(test_data)) / (cutoff^penal), 2))
     
     # Export PAI
     return(out)
@@ -93,7 +100,8 @@ outcome_eval <-
            n = n,
            test_data = test_data,
            model_dataframe = model_dataframe,
-           cutoff = cutoff) {
+           cutoff = cutoff,
+           penal = penal) {
     
     # Join test data to model grid and obtain counts
     n_per <- sf::st_join(test_data, model_dataframe) %>%
@@ -104,7 +112,7 @@ outcome_eval <-
     
     # Optimal PAI for given cutoff
     pai_per <- sum(n_per$n) / nrow(test_data) / cutoff
-    pai_obs <- as.numeric(.pai(a, n, test_data, cutoff))
+    pai_obs <- as.numeric(.pai(a, n, test_data, cutoff, penal))
     
     # Calculate ratio of observed to perfect
     out <- c("PEI" = round(pai_obs / pai_per, 2))

@@ -18,7 +18,8 @@ plot_eval <- function(model_fit,
                       eval = "pai",
                       cutoff_lower = 0.001,
                       cutoff_upper = 0.01,
-                      cutoff_range = 100){
+                      cutoff_range = 100,
+                      penal = 1){
   
   # Initialize list, counter, and range of values
   alist <- list()
@@ -33,7 +34,8 @@ plot_eval <- function(model_fit,
       model_fit = model_fit,
       test_data = test_data,
       eval = eval,
-      cutoff = i
+      cutoff = i,
+      penal = penal
     )
 
   }

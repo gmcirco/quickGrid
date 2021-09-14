@@ -39,9 +39,10 @@ model list
 \description{
 Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list
 of predictor variables, and a study region and converts it into a grid-based model object.
-Users can select whether to calculate nearest grid-cell distances,densities, or both. Function returns a
+Users can select whether to calculate nearest grid-cell distances,densities,counts, or all three. Function returns a
 (non-spatial) dataframe and a spatial (\code{sf}) polygon grid. The function is intended to be used with the \code{xgboost}
-wrapper \code{gbm_fit}, but can also used in any other statistical model (i.e. \code{ranger}, \code{glmnet}).
+wrapper \code{gbm_fit}, but can also used in any other statistical model (i.e. \code{ranger}, \code{glmnet}). A number of functions
+are borrowed from code examples in Wheeler & Steenbeek, W. (2021).
 }
 \examples{
 data("hartford_data")
@@ -53,5 +54,8 @@ model_data <- prep_data(outcome = hartford_data$robbery,
                        gridsize = 200,
                        measure = 'distance')
                        
-          
+}
+\references{
+Wheeler, A. P., & Steenbeek, W. (2021). Mapping the risk terrain for crime using machine learning.
+\emph{Journal of Quantitative Criminology}, 37(2), 445-480.
 }

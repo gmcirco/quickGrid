@@ -4,17 +4,19 @@
 \alias{outcome_eval}
 \title{Evaluate predictions from a gbm_fit model}
 \usage{
-outcome_eval(model_fit, test_data, eval = "pai", cutoff = 0.01)
+outcome_eval(model_fit, test_data, eval = "pai", cutoff = 0.01, penal = 1)
 }
 \arguments{
 \item{model_fit}{Fitted model object from the \code{gbm_fit}}
 
 \item{test_data}{Out-of-sample observations to be used as evaluation data}
 
-\item{eval}{Type of evaluation to be performed. Should be one of: 'pai', 'pei', 'rri'. Defaults to 'pai'.}
+\item{eval}{Type of evaluation to be performed. Should be one of: 'pai', 'ppai', 'pei', 'rri'. Defaults to 'pai'.}
 
 \item{cutoff}{Cutoff value to determine a hotspot, in proportion of the area. Defaults to 0.01, which is the top 1\%
 of predicted locations.}
+
+\item{penal}{Penalization factor p where 0 ≤ p ≤ 1. Defaults to 1, which is equivalent to the PAI.}
 }
 \description{
 Evaluate predictions from a fitted gbm_fit model. Provides a variety of functions to estimate the out-of-sample
@@ -22,4 +24,8 @@ effectiveness of a prediction model, including the predictive accuracy index (PA
 (PEI), and the recapture rate index (RRI). At a minimum users must provide a fitted model object from the
 \code{gbm_fit} function and a set of out-of-sample observations as 'test' data. These out-of-sample values should be
 crimes or observations that were not used in the fitting the model.
+}
+\details{
+Supplying a value for the parameter \code{penal} allows models to consider the penalized predictive accuracy index (pPAI)
+as described in Joshi, Curtis-Ham, D'Ath, and Searle (2021).
 }

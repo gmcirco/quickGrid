@@ -200,8 +200,12 @@ gbm_fit <- function(prep_data,
   # Model dataframe as a shapefile with predictions
   # Original model used to fit predictions
   
-  return(list('model_dataframe' = gbm.fit.pred,
-              'model_fit' = gbm.fit) )
+  gbm.out <- list('model_dataframe' = gbm.fit.pred,
+                  'model_fit' = gbm.fit)
+  
+  
+  class(gbm.out) <- c("qg.fit", class(gbm.out))
+  return(gbm.out)
   
 }
 

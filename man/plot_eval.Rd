@@ -10,7 +10,8 @@ plot_eval(
   eval = "pai",
   cutoff_lower = 0.001,
   cutoff_upper = 0.01,
-  cutoff_range = 100
+  cutoff_range = 100,
+  penal = 1
 )
 }
 \arguments{

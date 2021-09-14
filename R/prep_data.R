@@ -5,9 +5,10 @@
 #' 
 #' Prepares data for analysis. This is a generic function that takes an outcome variable (i.e. a crime), a named list 
 #' of predictor variables, and a study region and converts it into a grid-based model object. 
-#' Users can select whether to calculate nearest grid-cell distances,densities, or both. Function returns a 
+#' Users can select whether to calculate nearest grid-cell distances,densities,counts, or all three. Function returns a 
 #' (non-spatial) dataframe and a spatial (`sf`) polygon grid. The function is intended to be used with the `xgboost` 
-#' wrapper `gbm_fit`, but can also used in any other statistical model (i.e. `ranger`, `glmnet`).
+#' wrapper `gbm_fit`, but can also used in any other statistical model (i.e. `ranger`, `glmnet`). A number of functions
+#' are borrowed from code examples in Wheeler & Steenbeek, W. (2021).
 #' 
 #' @param outcome Outcome variable as a point shapefile
 #' @param pred_var Named list of shapefiles as spatial predictors.
@@ -43,7 +44,9 @@
 #'                        gridsize = 200,
 #'                        measure = 'distance')
 #'                        
-#'           
+#' @references
+#' Wheeler, A. P., & Steenbeek, W. (2021). Mapping the risk terrain for crime using machine learning. 
+#' *Journal of Quantitative Criminology*, 37(2), 445-480.           
 #'@export
 
 prep_data <- function(outcome,
